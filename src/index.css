@@ -36,6 +36,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg: oklch(0.18 0.025 255);
   --bg-2: oklch(0.22 0.028 255);
   --bg-3: oklch(0.26 0.030 255);

@@ -45,11 +45,24 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-  const isOwner = profile?.role === 'owner'
+  async function updatePreference(key, value) {
+    const newPrefs = { ...(profile?.preferences || {}), [key]: value }
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ preferences: newPrefs })
+      .eq('id', user.id)
+      .select()
+      .single()
+    if (!error) setProfile(data)
+    return { error }
+  }
+
+  const isAdmin      = profile?.role === 'admin' || profile?.role === 'owner'
+  const isOwner      = profile?.role === 'owner'
+  const preferences  = profile?.preferences || {}
 
   return (
-    <AuthContext.Provider value={{ user, profile, isAdmin, isOwner, loading, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, isAdmin, isOwner, loading, updateProfile, updatePreference, preferences }}>
       {children}
     </AuthContext.Provider>
   )

@@ -13,17 +13,29 @@ import CasesManagementPage from './pages/CasesManagementPage'
 import SettingsPage from './pages/SettingsPage'
 
 function AppShell() {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, updatePreference } = useAuth()
 
   const [screen, setScreen]       = useState('dashboard')
   const [openCaseId, setCaseId]   = useState(null)
   const [theme, setTheme]         = useState(() => localStorage.getItem('el-theme') || 'light')
   const [sidebarOpen, setSidebar] = useState(true)
 
+  // סנכרון תמה מה-DB כשהפרופיל נטען
+  useEffect(() => {
+    if (profile?.preferences?.theme) {
+      setTheme(profile.preferences.theme)
+    }
+  }, [profile?.id])
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('el-theme', theme)
   }, [theme])
+
+  function handleThemeChange(newTheme) {
+    setTheme(newTheme)
+    updatePreference('theme', newTheme)
+  }
 
   if (loading) {
     return <div className="app-loading">טוען...</div>
@@ -58,7 +70,7 @@ function AppShell() {
         {screen === 'cases-mgmt' && <CasesManagementPage onOpenCase={openCase} />}
         {screen === 'reports'   && <ReportsPage />}
         {screen === 'users'     && <UsersPage />}
-        {screen === 'settings'  && <SettingsPage theme={theme} onTheme={setTheme} />}
+        {screen === 'settings'  && <SettingsPage theme={theme} onTheme={handleThemeChange} />}
       </main>
 
       <div className={'sidebar-wrap' + (sidebarOpen ? '' : ' collapsed')}>
@@ -67,7 +79,7 @@ function AppShell() {
           onNav={goto}
           user={sidebarUser}
           theme={theme}
-          onToggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          onToggleTheme={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
           onLogout={handleLogout}
           onClose={() => setSidebar(false)}
         />

@@ -1,77 +1,68 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { IcX } from './Icons'
 
-const STATUS_OPTIONS = ['חדש', 'בטיפול', 'בוצע', 'ממתין']
+const STATUS_OPTIONS   = ['חדש', 'בטיפול', 'בוצע', 'ממתין']
 const PRIORITY_OPTIONS = ['גבוהה', 'בינונית', 'נמוכה']
 
 export default function TaskModal({ caseItem, employees, onClose, onSaved }) {
   const [form, setForm] = useState({
     employee_id: '',
-    task_type: '',
+    task_type:   '',
     general_info: '',
-    charges: '',
-    status: 'חדש',
-    priority: 'בינונית',
+    charges:     '',
+    status:      'חדש',
+    priority:    'בינונית',
     target_date: '',
-    notes: '',
+    notes:       '',
   })
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error,  setError]  = useState('')
 
-  function handleChange(name, value) {
-    setForm(prev => ({ ...prev, [name]: value }))
-  }
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e?.preventDefault()
     if (!form.employee_id) { setError('יש לבחור עובד'); return }
     setSaving(true)
     setError('')
 
     const { error } = await supabase.from('case_assignments').upsert({
-      case_id: caseItem.id,
-      employee_id: form.employee_id,
-      task_type: form.task_type || null,
-      general_info: form.general_info || null,
-      charges: form.charges ? Number(form.charges) : null,
-      status: form.status,
-      priority: form.priority || null,
-      target_date: form.target_date || null,
-      notes: form.notes || null,
+      case_id:          caseItem.id,
+      employee_id:      form.employee_id,
+      task_type:        form.task_type    || null,
+      general_info:     form.general_info || null,
+      charges:          form.charges ? Number(form.charges) : null,
+      status:           form.status,
+      priority:         form.priority     || null,
+      target_date:      form.target_date  || null,
+      notes:            form.notes        || null,
       assigned_by_note: `הוקצה ע"י מנהל – ${new Date().toLocaleDateString('he-IL')}`,
-      updated_at: new Date().toISOString(),
+      updated_at:       new Date().toISOString(),
     }, { onConflict: 'case_id,employee_id' })
 
     setSaving(false)
-
-    if (error) {
-      setError(error.message)
-    } else {
-      onSaved()
-      onClose()
-    }
+    if (error) { setError(error.message) } else { onSaved(); onClose() }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box card" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+
+        <div className="card-head">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">הוספת משימה</h2>
-            <p className="text-sm text-gray-500 mt-0.5">תיק: {caseItem.name}</p>
+            <h3>הוספת משימה</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>תיק: {caseItem.name}</div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+          <button className="icon-btn" onClick={onClose}><IcX size={14} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">עובד <span className="text-red-500">*</span></label>
-            <select
-              value={form.employee_id}
-              onChange={e => handleChange('employee_id', e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* עובד */}
+          <div className="field-input">
+            <label>עובד <span style={{ color: 'var(--status-urgent)' }}>*</span></label>
+            <select className="field-input-el" value={form.employee_id} onChange={e => set('employee_id', e.target.value)}>
               <option value="">בחר עובד...</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>{emp.full_name}</option>
@@ -79,101 +70,72 @@ export default function TaskModal({ caseItem, employees, onClose, onSaved }) {
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">סוג משימה</label>
-              <input
-                type="text"
-                value={form.task_type}
-                onChange={e => handleChange('task_type', e.target.value)}
-                placeholder="נדל״ן, חוזים..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {/* שורה: סוג משימה + חיובים */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="field-input">
+              <label>סוג משימה</label>
+              <input className="field-input-el" placeholder='נדל"ן, חוזים...' value={form.task_type} onChange={e => set('task_type', e.target.value)} />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">חיובים (₪)</label>
-              <input
-                type="number"
-                value={form.charges}
-                onChange={e => handleChange('charges', e.target.value)}
-                placeholder="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">סטטוס</label>
-              <select
-                value={form.status}
-                onChange={e => handleChange('status', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">עדיפות</label>
-              <select
-                value={form.priority}
-                onChange={e => handleChange('priority', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">מועד יעד</label>
-              <input
-                type="date"
-                value={form.target_date}
-                onChange={e => handleChange('target_date', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="field-input">
+              <label>חיובים (₪)</label>
+              <input className="field-input-el" type="number" min="0" placeholder="0" value={form.charges} onChange={e => set('charges', e.target.value)} />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">מידע כללי</label>
-            <textarea
-              value={form.general_info}
-              onChange={e => handleChange('general_info', e.target.value)}
-              rows={2}
-              placeholder="פרטים נוספים על המשימה..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          {/* שורה: סטטוס + עדיפות */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="field-input">
+              <label>סטטוס</label>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                {STATUS_OPTIONS.map(s => (
+                  <button key={s} type="button" className={'chip' + (form.status === s ? ' active' : '')} onClick={() => set('status', s)}>{s}</button>
+                ))}
+              </div>
+            </div>
+            <div className="field-input">
+              <label>עדיפות</label>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                {PRIORITY_OPTIONS.map(p => (
+                  <button key={p} type="button" className={'chip' + (form.priority === p ? ' active' : '')} onClick={() => set('priority', p)}>{p}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* תאריך יעד */}
+          <div className="field-input">
+            <label>תאריך יעד</label>
+            <input
+              className="field-input-el"
+              type="date"
+              value={form.target_date}
+              onChange={e => set('target_date', e.target.value)}
+              style={{ colorScheme: 'var(--color-scheme, light)' }}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">הערות</label>
-            <textarea
-              value={form.notes}
-              onChange={e => handleChange('notes', e.target.value)}
-              rows={2}
-              placeholder="הערות פנימיות..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            />
+          {/* מידע כללי */}
+          <div className="field-input">
+            <label>מידע כללי</label>
+            <textarea className="field-input-el" rows={2} placeholder="פרטים נוספים על המשימה..." value={form.general_info} onChange={e => set('general_info', e.target.value)} />
+          </div>
+
+          {/* הערות */}
+          <div className="field-input">
+            <label>הערות</label>
+            <textarea className="field-input-el" rows={2} placeholder="הערות פנימיות..." value={form.notes} onChange={e => set('notes', e.target.value)} />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+            <div style={{ fontSize: 13, color: 'var(--status-urgent)', padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 6, border: '1px solid var(--status-urgent)' }}>
+              {error}
+            </div>
           )}
-        </form>
+        </div>
 
-        <div className="flex gap-3 px-6 py-4 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="flex-1 border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-          >
-            ביטול
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors text-sm disabled:opacity-50"
-          >
+        <div className="modal-footer">
+          <button className="btn" type="button" onClick={onClose}>ביטול</button>
+          <button className="btn primary" type="button" onClick={handleSubmit} disabled={saving}>
             {saving ? 'שומר...' : 'הוסף משימה'}
           </button>
         </div>

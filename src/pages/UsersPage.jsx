@@ -39,8 +39,8 @@ function ConfirmModal({ title, message, confirmLabel, onConfirm, onClose }) {
   )
 }
 
-function CreateUserModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'employee' })
+function CreateUserModal({ onClose, onSaved, isOwner }) {
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '', role: 'employee' })
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError('') }
@@ -52,6 +52,10 @@ function CreateUserModal({ onClose, onSaved }) {
     }
     if (form.password.length < 6) {
       setError('הסיסמה חייבת להכיל לפחות 6 תווים')
+      return
+    }
+    if (form.password !== form.confirm) {
+      setError('הסיסמאות אינן תואמות')
       return
     }
     setSaving(true)
@@ -104,9 +108,22 @@ function CreateUserModal({ onClose, onSaved }) {
         <input type="password" placeholder="לפחות 6 תווים" value={form.password} onChange={e => set('password', e.target.value)} />
       </div>
       <div className="field-input" style={{ marginTop: 12 }}>
+        <label>אימות סיסמה *</label>
+        <input
+          type="password"
+          placeholder="הזן סיסמה שנית"
+          value={form.confirm}
+          onChange={e => set('confirm', e.target.value)}
+          style={form.confirm && form.confirm !== form.password ? { borderColor: 'var(--status-urgent)' } : {}}
+        />
+        {form.confirm && form.confirm !== form.password && (
+          <div style={{ fontSize: 12, color: 'var(--status-urgent)', marginTop: 4 }}>הסיסמאות אינן תואמות</div>
+        )}
+      </div>
+      <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ['admin', 'מנהל'], ['owner', 'בעלים']].map(([k, l]) => (
+          {[['employee', 'עובד'], ['admin', 'מנהל'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
             <button key={k} className={'chip' + (form.role === k ? ' active' : '')} onClick={() => set('role', k)}>{l}</button>
           ))}
         </div>
@@ -244,7 +261,7 @@ export default function UsersPage() {
         </table>
       </div>
 
-      {creating && <CreateUserModal onClose={() => setCreating(false)} onSaved={load} />}
+      {creating && <CreateUserModal onClose={() => setCreating(false)} onSaved={load} isOwner={isOwner} />}
       {editing  && <EditUserModal user={editing} onClose={() => setEditing(null)} onSaved={load} />}
       {confirmDeleteId && (
         <ConfirmModal

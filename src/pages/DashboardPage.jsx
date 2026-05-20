@@ -241,7 +241,6 @@ export default function DashboardPage({ onOpenCase }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn" onClick={handleExport}><IcDownload size={14} /> ייצוא Excel</button>
-          <button className="btn primary" onClick={() => setNewCase(true)}><IcPlus size={14} /> תיק חדש</button>
         </div>
       </div>
 
@@ -344,18 +343,6 @@ export default function DashboardPage({ onOpenCase }) {
                         </span>
                       )}
                     </td>
-                    {isAdmin && (
-                      <td onClick={e => e.stopPropagation()}>
-                        <div className="row-actions">
-                          <button
-                            className="icon-btn"
-                            title="מחק תיק"
-                            style={{ color: 'var(--status-urgent)' }}
-                            onClick={() => setConfirmDeleteId(c.id)}
-                          ><IcTrash size={13} /></button>
-                        </div>
-                      </td>
-                    )}
                   </tr>
                 )
               })}

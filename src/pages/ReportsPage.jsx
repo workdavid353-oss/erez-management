@@ -65,18 +65,35 @@ function PieChart({ data, total }) {
   )
 }
 
+function getPeriodFrom(period) {
+  const d = new Date()
+  if (period === 'week')    d.setDate(d.getDate() - 7)
+  if (period === 'month')   d.setMonth(d.getMonth() - 1)
+  if (period === 'quarter') d.setMonth(d.getMonth() - 3)
+  if (period === 'year')    d.setFullYear(d.getFullYear() - 1)
+  return d.toISOString()
+}
+
 export default function ReportsPage() {
   const [cases,       setCases]       = useState([])
   const [employees,   setEmployees]   = useState([])
   const [assignments, setAssignments] = useState([])
   const [loading,     setLoading]     = useState(true)
   const [period,      setPeriod]      = useState('quarter')
+  const [customRange, setCustomRange] = useState(false)
+  const [dateFrom,    setDateFrom]    = useState('')
+  const [dateTo,      setDateTo]      = useState('')
 
   useEffect(() => {
     async function load() {
+      let casesQ = supabase.from('cases').select('id, category, status, created_at')
+      if (customRange && dateFrom) casesQ = casesQ.gte('created_at', new Date(dateFrom).toISOString())
+      if (customRange && dateTo)   casesQ = casesQ.lte('created_at', new Date(dateTo + 'T23:59:59').toISOString())
+      if (!customRange)            casesQ = casesQ.gte('created_at', getPeriodFrom(period))
+
       const [casesRes, empRes, assignRes] = await Promise.all([
-        supabase.from('cases').select('id, category, status'),
-        supabase.from('profiles').select('id, full_name').eq('role', 'employee'),
+        casesQ,
+        supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']),
         supabase.from('case_assignments').select('employee_id, status'),
       ])
       setCases(casesRes.data || [])
@@ -85,7 +102,18 @@ export default function ReportsPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [period, customRange, dateFrom, dateTo])
+
+  function exportCSV() {
+    const rows = [['עובד', 'משימות פתוחות', 'סה"כ משימות']]
+    workload.forEach(w => rows.push([w.emp.full_name, w.open, w.total]))
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'workload.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (loading) return <div className="app-loading" style={{ minHeight: 'unset', padding: 60 }}>טוען דוחות...</div>
 
@@ -113,15 +141,37 @@ export default function ReportsPage() {
     <div className="page">
       <div className="page-header">
         <div>
-          <div className="eyebrow">דוחות וניתוחים · {PERIOD_LABEL[period]}</div>
+          <div className="eyebrow">דוחות וניתוחים · {customRange ? 'טווח מותאם' : PERIOD_LABEL[period]}</div>
           <h1>דוחות וסטטיסטיקות</h1>
           <div className="sub">תמונת מצב של פעילות המשרד — לפי קטגוריות, סטטוסים ועומס עובדים.</div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {[['week', 'שבוע'], ['month', 'חודש'], ['quarter', 'רבעון'], ['year', 'שנה']].map(([k, l]) => (
-            <button key={k} className={'chip' + (period === k ? ' active' : '')} onClick={() => setPeriod(k)}>{l}</button>
+            <button key={k} className={'chip' + (!customRange && period === k ? ' active' : '')}
+              onClick={() => { setPeriod(k); setCustomRange(false) }}>{l}</button>
           ))}
-          <button className="btn"><IcCalendar size={14} /> טווח מותאם</button>
+          <button className={'btn' + (customRange ? ' primary' : '')} onClick={() => setCustomRange(r => !r)}>
+            <IcCalendar size={14} /> טווח מותאם
+          </button>
+          {customRange && (
+            <>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="field-input-el"
+                style={{ fontSize: 12, padding: '4px 10px', width: 'auto', colorScheme: 'var(--color-scheme, light)' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>עד</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="field-input-el"
+                style={{ fontSize: 12, padding: '4px 10px', width: 'auto', colorScheme: 'var(--color-scheme, light)' }}
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -158,7 +208,7 @@ export default function ReportsPage() {
       <div className="card">
         <div className="card-head">
           <h3>עומס עובדים — משימות פתוחות</h3>
-          <button className="btn sm"><IcDownload size={12} /> ייצוא CSV</button>
+          <button className="btn sm" onClick={exportCSV}><IcDownload size={12} /> ייצוא CSV</button>
         </div>
         <div className="card-body">
           {workload.length === 0 ? (
