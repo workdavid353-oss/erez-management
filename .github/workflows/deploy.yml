@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create .env.production
-        shell: pwsh
+        shell: powershell
         run: |
           @(
             "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}",
@@ -21,24 +21,24 @@ jobs:
           ) | Set-Content -Path .env.production -Encoding utf8
 
       - name: Install dependencies
-        shell: pwsh
+        shell: powershell
         run: npm ci
 
       - name: Build
-        shell: pwsh
+        shell: powershell
         run: npm run build
 
       - name: Build Docker image
-        shell: pwsh
+        shell: powershell
         run: docker build --pull=false -t erez-frontend .
 
       - name: Stop and remove old container
-        shell: pwsh
+        shell: powershell
         continue-on-error: true
         run: |
           docker stop erez-frontend
           docker rm erez-frontend
 
       - name: Start new container
-        shell: pwsh
+        shell: powershell
         run: docker run -d -p 80:80 --name erez-frontend --restart unless-stopped erez-frontend
