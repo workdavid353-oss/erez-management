@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Erez Legal — מדריך התקנה</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f1117; color: #e2e8f0; line-height: 1.7; }
+  .hero { background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%); border-bottom: 1px solid #2d3748; padding: 40px; text-align: center; }
+  .hero h1 { font-size: 2.2rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .hero p { color: #94a3b8; font-size: 1.05rem; }
+  .container { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+  .phase { margin-bottom: 48px; }
+  .phase-title { font-size: 1.3rem; font-weight: 700; color: #60a5fa; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 10px; }
+  .phase-num { background: #1d4ed8; color: #fff; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; }
+  .step { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px 24px; margin-bottom: 14px; }
+  .step-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .check { width: 22px; height: 22px; border: 2px solid #4b5563; border-radius: 5px; flex-shrink: 0; margin-top: 2px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .check.done { background: #16a34a; border-color: #16a34a; }
+  .check.done::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; }
+  .step-title { font-weight: 600; font-size: 1rem; color: #e2e8f0; }
+  .step-desc { color: #94a3b8; font-size: 0.9rem; margin-right: 34px; }
+  code { background: #0d1117; border: 1px solid #374151; border-radius: 5px; padding: 2px 7px; font-family: 'Consolas', monospace; font-size: 0.85rem; color: #93c5fd; direction: ltr; display: inline-block; }
+  pre { background: #0d1117; border: 1px solid #374151; border-radius: 8px; padding: 14px 16px; margin: 10px 0 0 34px; overflow-x: auto; direction: ltr; }
+  pre code { background: none; border: none; padding: 0; font-size: 0.85rem; color: #d1fae5; }
+  .warn { background: #292415; border: 1px solid #92400e; border-radius: 8px; padding: 12px 16px; margin: 10px 0 0 34px; color: #fcd34d; font-size: 0.88rem; }
+  .info { background: #0f2044; border: 1px solid #1e40af; border-radius: 8px; padding: 12px 16px; margin: 10px 0 0 34px; color: #93c5fd; font-size: 0.88rem; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-right: 6px; }
+  .tag-manual { background: #4c1d95; color: #c4b5fd; }
+  .tag-auto { background: #14532d; color: #86efac; }
+  .tag-once { background: #78350f; color: #fcd34d; }
+  .progress-bar { background: #1e293b; border-radius: 10px; height: 8px; margin: 24px 0; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, #1d4ed8, #16a34a); height: 100%; border-radius: 10px; transition: width 0.4s; width: 0%; }
+  .progress-label { text-align: center; color: #94a3b8; font-size: 0.85rem; margin-top: 6px; }
+  .env-table { width: 100%; border-collapse: collapse; margin: 10px 0 0 0; font-size: 0.85rem; direction: ltr; }
+  .env-table th { background: #1e293b; padding: 8px 12px; text-align: left; color: #94a3b8; font-weight: 600; }
+  .env-table td { padding: 8px 12px; border-top: 1px solid #2d3748; color: #e2e8f0; vertical-align: top; }
+  .env-table td:first-child { color: #93c5fd; font-family: monospace; white-space: nowrap; }
+  .footer { text-align: center; padding: 40px; color: #4b5563; font-size: 0.85rem; border-top: 1px solid #1e293b; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>⚖️ Erez Legal — מדריך התקנה</h1>
+  <p>התקנה מלאה של מערכת ניהול התיקים על שרת חדש</p>
+</div>
+
+<div class="container">
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-label" id="progressLabel">0 / 0 שלבים הושלמו</div>
+
+  <!-- PHASE 1 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">1</span> דרישות מקדימות</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">התקן Docker Desktop <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        הורד מ-<code>https://www.docker.com/products/docker-desktop</code> והתקן.<br>
+        לאחר ההתקנה — הפעל מחדש את המחשב ווודא ש-Docker פועל (אייקון במגש המערכת).
+      </div>
+      <div class="warn">⚠️ ברשת TAU — Docker Desktop עלול להתקשות בהורדת images בפעם הראשונה. יש להיות ברשת Wi-Fi ביתית לשלב ההתקנה הראשון.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">התקן Node.js 20+ <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        הורד מ-<code>https://nodejs.org</code> (LTS). לאחר ההתקנה בדוק:
+        <pre><code>node --version
+npm --version</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">התקן Git <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        הורד מ-<code>https://git-scm.com</code> והתקן עם הגדרות ברירת מחדל.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">2</span> הרץ את סקריפט ההתקנה האוטומטי</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הרץ setup.ps1 <span class="tag tag-auto">אוטומטי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        פתח PowerShell <strong>כמנהל מערכת</strong> והרץ:
+        <pre><code>powershell -ExecutionPolicy Bypass -File "C:\path\to\erez-management\setup.ps1"</code></pre>
+        הסקריפט יבקש ממך:
+        <ul style="margin: 8px 0 0 20px; color: #94a3b8; font-size: 0.88rem;">
+          <li>כתובת ה-IP של השרת ברשת המקומית</li>
+          <li>טוקן GitHub Actions (מהשלב הבא)</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">3</span> הגדרת Supabase</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">העתק תיקיית Supabase Docker <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        העתק את התיקייה <code>C:\Users\davidferber\Desktop\VS-Code\supabase\</code> מהמחשב הישן לשרת החדש באותו נתיב.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">עדכן את ה-IP ב-supabase/docker/.env <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        ערוך את הקובץ <code>supabase\docker\.env</code> ועדכן:
+        <table class="env-table">
+          <tr><th>מפתח</th><th>ערך</th></tr>
+          <tr><td>API_EXTERNAL_URL</td><td>http://&lt;LAN_IP&gt;:8000</td></tr>
+          <tr><td>SITE_URL</td><td>http://&lt;LAN_IP&gt;</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הפעל את Supabase <span class="tag tag-auto">אוטומטי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        <pre><code>cd C:\Users\&lt;user&gt;\Desktop\VS-Code\supabase\docker
+docker compose up -d</code></pre>
+        המתן ~2 דקות עד שכל הקונטיינרים עולים. בדוק ב:
+        <pre><code>docker ps --filter "name=supabase"</code></pre>
+        כולם צריכים להיות <strong>healthy</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הרץ את ה-migration של הDB <span class="tag tag-once">חד-פעמי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        פתח Supabase Studio ב-<code>http://localhost:3000</code> → SQL Editor והרץ:
+        <pre><code>ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}';</code></pre>
+        <div class="info">💡 יש גם לייבא את הסכמה המלאה מ-<code>supabase_schema.sql</code> שבתיקיית הפרויקט אם זו התקנה ראשונה.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">4</span> הגדרת GitHub Actions Runner</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">קבל טוקן Runner מ-GitHub <span class="tag tag-manual">ידני</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        פתח בדפדפן:<br>
+        <code>https://github.com/workdavid353-oss/erez-management/settings/actions/runners/new?runnerOs=windows</code><br><br>
+        בחר <strong>Windows → x64</strong>, גלול ל-<strong>Configure</strong> וצלם את הטוקן שמופיע אחרי <code>--token</code>.
+        <div class="warn">⚠️ הטוקן תקף רק שעה אחת!</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הכנס את הטוקן לסקריפט ההתקנה <span class="tag tag-auto">אוטומטי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        הסקריפט <code>setup.ps1</code> מבקש את הטוקן ומגדיר את ה-runner אוטומטית כשירות Windows.
+        <div class="info">💡 לאחר ההגדרה, הסקריפט מגדיר את Execution Policy ומפעיל את השירות.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">5</span> גיבוי Google Drive</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">העתק את rclone.conf מהמחשב הישן <span class="tag tag-once">חד-פעמי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        אם אתה משתמש באותו חשבון Google Drive — פשוט העתק:
+        <pre><code># מהמחשב הישן:
+C:\Users\davidferber\AppData\Roaming\rclone\rclone.conf
+
+# לנתיב הזהה בשרת החדש</code></pre>
+        <div class="info">💡 אם לא — הרץ <code>C:\actions-runner\rclone.exe config</code> ועקוב אחר תהליך Google Auth.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הגדר גיבוי אוטומטי <span class="tag tag-auto">אוטומטי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        הסקריפט <code>setup.ps1</code> מעתיק את <code>backup.ps1</code> ויוצר Task Scheduler אוטומטית.<br>
+        לבדיקה ידנית:
+        <pre><code>powershell -ExecutionPolicy Bypass -File C:\actions-runner\backup.ps1</code></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 6 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">6</span> בדיקות סיום</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div><div class="step-title">האתר עולה</div></div>
+      </div>
+      <div class="step-desc">פתח <code>http://&lt;LAN_IP&gt;</code> — מסך הכניסה אמור להופיע.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div><div class="step-title">כניסה עם משתמש עובד</div></div>
+      </div>
+      <div class="step-desc">נסה להתחבר עם אחד מהמשתמשים הקיימים.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div><div class="step-title">Auto-deploy עובד</div></div>
+      </div>
+      <div class="step-desc">
+        בצע שינוי קטן ו-<code>git push</code> — בדוק שה-GitHub Actions run מסתיים בהצלחה ב:
+        <pre><code>https://github.com/workdavid353-oss/erez-management/actions</code></pre>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div><div class="step-title">גיבוי ידני עובד</div></div>
+      </div>
+      <div class="step-desc">
+        הרץ גיבוי ידני ובדוק שהקובץ מופיע ב-Google Drive:
+        <pre><code>powershell -ExecutionPolicy Bypass -File C:\actions-runner\backup.ps1</code></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- QUICK REFERENCE -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">📋</span> קבצים חשובים לדעת</div>
+    <div class="step">
+      <div class="step-desc" style="margin-right: 0;">
+        <table class="env-table">
+          <tr><th>קובץ</th><th>מטרה</th></tr>
+          <tr><td>erez-management\.env.production</td><td>IP של השרת (לא ב-git)</td></tr>
+          <tr><td>C:\actions-runner\.env.production</td><td>עותק עבור GitHub Actions runner</td></tr>
+          <tr><td>C:\actions-runner\backup.ps1</td><td>סקריפט גיבוי</td></tr>
+          <tr><td>C:\actions-runner\rclone.exe</td><td>כלי העלאה ל-Google Drive</td></tr>
+          <tr><td>C:\actions-runner\backups\backup.log</td><td>לוג גיבויים</td></tr>
+          <tr><td>supabase\docker\.env</td><td>הגדרות Supabase (לא ב-git)</td></tr>
+        </table>
+        <br>
+        <strong style="color:#60a5fa;">שינוי IP:</strong> עדכן את שני קבצי .env.production + <code>git push</code>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">Erez Legal Management System · Internal Use Only</div>
+
+<script>
+  function toggle(el) {
+    el.classList.toggle('done');
+    updateProgress();
+  }
+  function updateProgress() {
+    const all = document.querySelectorAll('.check');
+    const done = document.querySelectorAll('.check.done');
+    const pct = all.length ? Math.round(done.length / all.length * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = done.length + ' / ' + all.length + ' שלבים הושלמו';
+  }
+  updateProgress();
+</script>
+</body>
+</html>
