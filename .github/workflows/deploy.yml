@@ -11,14 +11,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env.production
+      - name: Copy .env.production
         shell: powershell
-        run: |
-          @(
-            "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}",
-            "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}",
-            "VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}"
-          ) | Set-Content -Path .env.production -Encoding utf8
+        run: Copy-Item "C:\Users\davidferber\Desktop\VS-Code\erez-management\.env.production" -Destination .env.production -Force
 
       - name: Install dependencies
         shell: powershell
