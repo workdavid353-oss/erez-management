@@ -1,0 +1,44 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env.production
+        shell: pwsh
+        run: |
+          @(
+            "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}",
+            "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}",
+            "VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}"
+          ) | Set-Content -Path .env.production -Encoding utf8
+
+      - name: Install dependencies
+        shell: pwsh
+        run: npm ci
+
+      - name: Build
+        shell: pwsh
+        run: npm run build
+
+      - name: Build Docker image
+        shell: pwsh
+        run: docker build --pull=false -t erez-frontend .
+
+      - name: Stop and remove old container
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          docker stop erez-frontend
+          docker rm erez-frontend
+
+      - name: Start new container
+        shell: pwsh
+        run: docker run -d -p 80:80 --name erez-frontend --restart unless-stopped erez-frontend
