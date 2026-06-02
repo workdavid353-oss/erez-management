@@ -13,7 +13,7 @@ jobs:
 
       - name: Copy .env.production
         shell: powershell
-        run: Copy-Item "C:\Users\davidferber\Desktop\VS-Code\erez-management\.env.production" -Destination .env.production -Force
+        run: Copy-Item "C:\actions-runner\.env.production" -Destination .env.production -Force
 
       - name: Install dependencies
         shell: powershell
