@@ -25,7 +25,7 @@ jobs:
 
       - name: Build Docker image
         shell: powershell
-        run: docker build --pull=false -t erez-frontend .
+        run: docker build --pull=false --no-cache -t erez-frontend $env:GITHUB_WORKSPACE
 
       - name: Stop and remove old container
         shell: powershell
