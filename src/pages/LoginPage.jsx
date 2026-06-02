@@ -85,9 +85,6 @@ export default function LoginPage() {
             {forgot ? 'חזרה לכניסה' : 'שכחתי סיסמה'}
           </span>
         </form>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '12px', opacity: 0.5 }}>
-          v1.0.1
-        </div>
       </div>
 
       <div className="login-art">
