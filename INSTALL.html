@@ -179,14 +179,45 @@ docker compose up -d</code></pre>
       <div class="step-header">
         <div class="check" onclick="toggle(this)"></div>
         <div>
-          <div class="step-title">הרץ את ה-migration של הDB <span class="tag tag-once">חד-פעמי</span></div>
+          <div class="step-title">הרץ את ה-SQL — סכמה מלאה <span class="tag tag-once">חד-פעמי</span></div>
         </div>
       </div>
       <div class="step-desc">
-        פתח Supabase Studio ב-<code>http://localhost:3000</code> → SQL Editor והרץ:
+        פתח Supabase Studio ב-<code>http://localhost:3000</code> → <strong>SQL Editor</strong> → לחץ <strong>New Query</strong>.<br><br>
+        העתק את כל התוכן של הקובץ <code>supabase_schema.sql</code> שנמצא בתיקיית הפרויקט, הדבק ב-editor ולחץ <strong>Run</strong>.
+        <div class="info">💡 הקובץ יוצר את כל הטבלאות, RLS policies, ו-triggers. חובה להריץ לפני שמשתמשים נכנסים לראשונה.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">הרץ Migration — עמודת preferences <span class="tag tag-once">חד-פעמי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        באותו SQL Editor, פתח <strong>New Query</strong> נוספת והרץ:
         <pre><code>ALTER TABLE public.profiles
 ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}';</code></pre>
-        <div class="info">💡 יש גם לייבא את הסכמה המלאה מ-<code>supabase_schema.sql</code> שבתיקיית הפרויקט אם זו התקנה ראשונה.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">תקן משתמשים שנוצרו ידנית ב-SQL <span class="tag tag-once">חד-פעמי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        אם ייבאת משתמשים ישירות ל-DB (לא דרך ממשק הרשמה), הרץ:
+        <pre><code>UPDATE auth.users
+SET
+  email_change  = COALESCE(email_change, ''),
+  phone_change  = COALESCE(phone_change, '')
+WHERE email_change IS NULL OR phone_change IS NULL;</code></pre>
+        <div class="warn">⚠️ בלי זה תופיע שגיאת "Database error querying schema" בכניסה.</div>
       </div>
     </div>
 
