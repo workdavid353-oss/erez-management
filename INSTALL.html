@@ -146,12 +146,16 @@ npm --version</code></pre>
         </div>
       </div>
       <div class="step-desc">
+        קודם כל מצא את ה-IP של השרת — הרץ ב-PowerShell:
+        <pre><code>Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '172.*' } | Select-Object IPAddress, InterfaceAlias</code></pre>
+        קח את ה-IP שמשויך לממשק הרשת שהעובדים מחוברים אליו (לרוב Ethernet או Wi-Fi).<br><br>
         ערוך את הקובץ <code>supabase\docker\.env</code> ועדכן:
         <table class="env-table">
           <tr><th>מפתח</th><th>ערך</th></tr>
           <tr><td>API_EXTERNAL_URL</td><td>http://&lt;LAN_IP&gt;:8000</td></tr>
           <tr><td>SITE_URL</td><td>http://&lt;LAN_IP&gt;</td></tr>
         </table>
+        <div class="info">💡 אותו IP תשתמש בו גם ב-setup.ps1 כשהוא ישאל אותך.</div>
       </div>
     </div>
 
