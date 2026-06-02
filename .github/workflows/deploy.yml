@@ -23,6 +23,13 @@ jobs:
         shell: powershell
         run: npm run build
 
+      - name: Debug build context
+        shell: powershell
+        run: |
+          Write-Host "GITHUB_WORKSPACE=$env:GITHUB_WORKSPACE"
+          Write-Host "PWD=$(Get-Location)"
+          Get-ChildItem dist\assets\ | Select-Object Name
+
       - name: Build Docker image
         shell: powershell
         run: docker build --pull=false --no-cache -t erez-frontend $env:GITHUB_WORKSPACE
