@@ -225,7 +225,56 @@ WHERE email_change IS NULL OR phone_change IS NULL;</code></pre>
 
   <!-- PHASE 4 -->
   <div class="phase">
-    <div class="phase-title"><span class="phase-num">4</span> הגדרת GitHub Actions Runner</div>
+    <div class="phase-title"><span class="phase-num">4</span> יצירת משתמשים</div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">צור את המשתמש Admin הראשון <span class="tag tag-once">חד-פעמי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        בהתקנה ראשונה אין עדיין משתמשים — יש ליצור admin ראשון ידנית דרך Supabase Studio.<br><br>
+        <strong>שלב א׳</strong> — פתח <code>http://localhost:3000</code> → <strong>Authentication → Users → Add User</strong><br>
+        מלא אימייל וסיסמה ולחץ <strong>Create User</strong>.
+        <br><br>
+        <strong>שלב ב׳</strong> — עבור ל-<strong>SQL Editor</strong> והרץ (החלף את הערכים):
+        <pre><code>INSERT INTO public.profiles (id, full_name, role)
+SELECT id, 'שם מלא כאן', 'admin'
+FROM auth.users
+WHERE email = 'email@example.com';
+
+-- תיקון שדות NULL (חובה למשתמשים שנוצרו ידנית)
+UPDATE auth.users
+SET
+  email_change = COALESCE(email_change, ''),
+  phone_change = COALESCE(phone_change, '')
+WHERE email = 'email@example.com';</code></pre>
+        <div class="info">💡 החלף <code>'שם מלא כאן'</code> ו-<code>'email@example.com'</code> בערכים האמיתיים.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header">
+        <div class="check" onclick="toggle(this)"></div>
+        <div>
+          <div class="step-title">יצירת משתמשים נוספים דרך הממשק <span class="tag tag-auto">אוטומטי</span></div>
+        </div>
+      </div>
+      <div class="step-desc">
+        לאחר שה-admin הראשון מחובר — כל המשתמשים הבאים נוצרים דרך האפליקציה:<br><br>
+        <strong>הגדרות → משתמשים → + הוסף משתמש</strong><br><br>
+        מלא שם מלא, אימייל, סיסמה ותפקיד (admin / עובד). המערכת יוצרת את המשתמש אוטומטית ב-Supabase.
+        <div class="warn">⚠️ רק admin או owner יכולים ליצור משתמשים חדשים.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="phase">
+    <div class="phase-title"><span class="phase-num">5</span> הגדרת GitHub Actions Runner</div>
 
     <div class="step">
       <div class="step-header">
@@ -257,9 +306,9 @@ WHERE email_change IS NULL OR phone_change IS NULL;</code></pre>
 
   </div>
 
-  <!-- PHASE 5 -->
+  <!-- PHASE 6 -->
   <div class="phase">
-    <div class="phase-title"><span class="phase-num">5</span> גיבוי Google Drive</div>
+    <div class="phase-title"><span class="phase-num">6</span> גיבוי Google Drive</div>
 
     <div class="step">
       <div class="step-header">
@@ -294,9 +343,9 @@ C:\Users\davidferber\AppData\Roaming\rclone\rclone.conf
 
   </div>
 
-  <!-- PHASE 6 -->
+  <!-- PHASE 7 -->
   <div class="phase">
-    <div class="phase-title"><span class="phase-num">6</span> בדיקות סיום</div>
+    <div class="phase-title"><span class="phase-num">7</span> בדיקות סיום</div>
 
     <div class="step">
       <div class="step-header">
@@ -340,7 +389,7 @@ C:\Users\davidferber\AppData\Roaming\rclone\rclone.conf
 
   <!-- QUICK REFERENCE -->
   <div class="phase">
-    <div class="phase-title"><span class="phase-num">📋</span> קבצים חשובים לדעת</div>
+    <div class="phase-title"><span class="phase-num">📋</span> עזר מהיר — קבצים חשובים</div>
     <div class="step">
       <div class="step-desc" style="margin-right: 0;">
         <table class="env-table">
