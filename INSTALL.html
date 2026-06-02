@@ -133,8 +133,19 @@ npm --version</code></pre>
         </div>
       </div>
       <div class="step-desc">
-        העתק את התיקייה <code>supabase\docker\</code> מהמחשב הישן לשרת החדש — הנתיב <strong>לא חייב להיות זהה</strong>, רק תזכור איפה שמת אותה.
-        <div class="info">💡 כל מה שצריך זה שהתיקייה תכיל <code>docker-compose.yml</code> ו-<code>.env</code>. תריץ את <code>docker compose up -d</code> מתוכה.</div>
+        <strong>מה להעתיק:</strong> מהמחשב הישן, קח את כל התיקייה שמכילה את Supabase — אצלנו היא נמצאת ב:
+        <pre><code>C:\Users\davidferber\Desktop\VS-Code\supabase\docker\</code></pre>
+        <strong>לאן להעתיק:</strong> לשרת החדש לכל מקום שנוח — למשל:
+        <pre><code>C:\supabase\docker\</code></pre>
+        <strong>מה חייב להיות בפנים:</strong>
+        <table class="env-table">
+          <tr><th>קובץ / תיקייה</th><th>למה צריך</th></tr>
+          <tr><td>docker-compose.yml</td><td>הגדרות כל הקונטיינרים</td></tr>
+          <tr><td>.env</td><td>מפתחות JWT וסיסמאות — <strong>חייב להיות זהה</strong> למה שהפרונטאנד בנוי איתו</td></tr>
+          <tr><td>volumes\</td><td>נתוני הדאטאבייס — העתק רק אם רוצים להעביר data קיים</td></tr>
+        </table>
+        <div class="info">💡 לאחר ההעתקה — פתח PowerShell, נווט לתיקייה והרץ <code>docker compose up -d</code></div>
+        <div class="warn">⚠️ אל תשנה את הערכים ב-<code>.env</code> (JWT_SECRET, ANON_KEY וכו׳) — הם חייבים להיות זהים לאלה שהאפליקציה בנויה איתם.</div>
       </div>
     </div>
 
