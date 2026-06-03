@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, supabaseAdmin } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { roleLabel, initials } from '../lib/helpers'
 import { IcPlus, IcEdit, IcX, IcTrash } from '../components/Icons'
@@ -61,25 +61,23 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
     setSaving(true)
     setError('')
 
-    // יצירת משתמש Auth דרך Admin API
-    const { data, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-      email: form.email.trim(),
-      password: form.password,
-      email_confirm: true,
+    const res = await fetch('/api/admin-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim(),
+        role: form.role,
+      }),
     })
-
-    if (authErr) {
+    const result = await res.json()
+    if (result.error) {
       setSaving(false)
-      setError(authErr.message === 'User already registered' ? 'האימייל כבר קיים במערכת' : authErr.message)
+      setError(result.error === 'User already registered' ? 'האימייל כבר קיים במערכת' : result.error)
       return
     }
-
-    // יצירת/עדכון פרופיל
-    await supabase.from('profiles').upsert({
-      id: data.user.id,
-      full_name: form.full_name.trim(),
-      role: form.role,
-    })
 
     setSaving(false)
     onSaved()
@@ -195,7 +193,11 @@ export default function UsersPage() {
   }
 
   async function handleDelete(userId) {
-    await supabaseAdmin.auth.admin.deleteUser(userId)
+    await fetch('/api/admin-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', userId }),
+    })
     setUsers(prev => prev.filter(u => u.id !== userId))
     setConfirmDeleteId(null)
   }
