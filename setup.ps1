@@ -18,7 +18,7 @@ Write-Host ""
 # -- 1. Get LAN IP ---------------------------------------------------------------
 Title "Network Configuration"
 $ips = Get-NetIPAddress -AddressFamily IPv4 |
-       Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '172.*' } |
+       Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.*' -and $_.IPAddress -notlike '172.*' -and $_.IPAddress -notlike '192.168.128.*' } |
        Select-Object IPAddress, InterfaceAlias
 
 Write-Host "`n  Available IP addresses:"
@@ -48,8 +48,12 @@ OK ".env.production written (project + runner)"
 
 # -- 4. Fix PowerShell Execution Policy ------------------------------------------
 Title "Execution Policy"
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
-OK "LocalMachine execution policy set to RemoteSigned"
+try {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force -ErrorAction Stop
+    OK "LocalMachine execution policy set to RemoteSigned"
+} catch {
+    OK "Execution policy already managed by Group Policy (OK — continuing)"
+}
 
 # -- 5. Build frontend -----------------------------------------------------------
 Title "Building Frontend"
