@@ -111,7 +111,7 @@ var
   RunnerVer:   String;
   ResultCode:  Integer;
 begin
-  if CurStep <> ssInstall then Exit;
+  if CurStep <> ssPostInstall then Exit;
 
   PS         := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
   RunnerDir  := 'C:\actions-runner';
