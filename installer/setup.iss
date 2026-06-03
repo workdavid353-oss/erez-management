@@ -24,9 +24,8 @@ ShowLanguageDialog=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\INSTALL.html";            DestDir: "C:\erez-legal";      Flags: ignoreversion
-Source: "backup.ps1";                 DestDir: "C:\actions-runner";  Flags: ignoreversion
-Source: "deploy-workflow.yml";        DestDir: "C:\erez-legal";      Flags: ignoreversion
+Source: "..\INSTALL.html";  DestDir: "C:\erez-legal";     Flags: ignoreversion
+Source: "backup.ps1";       DestDir: "C:\actions-runner"; Flags: ignoreversion
 
 [Code]
 var
@@ -132,13 +131,14 @@ begin
   SaveStringToFile(RunnerDir + '\.env.production',  EnvContent, False);
 
   { 3. Clone repo }
-  Exec(PS, '-ExecutionPolicy Bypass -Command "if (!(Test-Path ''C:\erez-legal\repo'')) { git clone https://github.com/workdavid353-oss/erez-management.git C:\erez-legal\repo }"',
+  ForceDirectories('C:\erez-legal\repo');
+  Exec(PS, '-ExecutionPolicy Bypass -Command "if (!(Test-Path ''C:\erez-legal\repo\.git'')) { git clone https://github.com/workdavid353-oss/erez-management.git C:\erez-legal\repo } else { Set-Location C:\erez-legal\repo; git pull }"',
        '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
   SaveStringToFile('C:\erez-legal\repo\.env.production', EnvContent, False);
 
-  { 4. npm install + build }
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location ''C:\erez-legal\repo''; npm ci"', 'C:\erez-legal\repo');
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location ''C:\erez-legal\repo''; npm run build"', 'C:\erez-legal\repo');
+  { 4. npm install + build — use empty WorkDir, navigate inside command }
+  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location C:\erez-legal\repo; npm ci"', '');
+  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location C:\erez-legal\repo; npm run build"', '');
 
   { 5. Docker deploy }
   RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker build --pull=false --no-cache -t erez-frontend C:\erez-legal\repo"', '');
@@ -197,12 +197,11 @@ begin
   end;
 end;
 
-[Run]
-Filename: "{pf64}\Google\Chrome\Application\chrome.exe"; Parameters: "http://{code:GetIP}"; Description: "Open site in browser"; Flags: postinstall skipifsilent shellexec unchecked
-Filename: "C:\erez-legal\INSTALL.html"; Description: "Open installation checklist"; Flags: postinstall skipifsilent shellexec unchecked
-
-[Code]
 function GetIP(Param: String): String;
 begin
   Result := LAN_IP;
 end;
+
+[Run]
+Filename: "http://{code:GetIP}"; Description: "Open site in browser"; Flags: postinstall skipifsilent shellexec unchecked
+Filename: "C:\erez-legal\INSTALL.html"; Description: "Open installation checklist"; Flags: postinstall skipifsilent shellexec unchecked
