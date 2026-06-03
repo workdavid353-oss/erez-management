@@ -141,22 +141,26 @@ begin
   { 6. GitHub Actions Runner (optional) }
   if RunnerToken <> '' then
   begin
-    RunCmd(PS,
+    Exec(PS,
       '-ExecutionPolicy Bypass -Command "' +
       '$v = (Invoke-RestMethod https://api.github.com/repos/actions/runner/releases/latest).tag_name -replace ''v'','''' ;' +
       'Invoke-WebRequest -Uri (''https://github.com/actions/runner/releases/download/v'' + $v + ''/actions-runner-win-x64-'' + $v + ''.zip'') -OutFile C:\actions-runner\runner.zip -UseBasicParsing ;' +
       '[System.IO.Compression.ZipFile]::ExtractToDirectory(''C:\actions-runner\runner.zip'', ''C:\actions-runner'') ;' +
       'Set-Location C:\actions-runner ;' +
       '.\config.cmd --url https://github.com/workdavid353-oss/erez-management --token ' + RunnerToken + ' --name erez-runner --labels self-hosted,Windows --work _work --unattended "',
-      '');
+      '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
 
-    SvcName := 'actions.runner.workdavid353-oss.erez-management.erez-runner';
-    Exec('sc.exe', 'create ' + SvcName + ' binpath= "C:\actions-runner\bin\RunnerService.exe" start= auto displayname= "GitHub Actions Runner (erez-runner)"',
-         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Exec('sc.exe', 'failure ' + SvcName + ' reset= 86400 actions= restart/5000/restart/5000/restart/5000',
-         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-    Exec(PS, '-ExecutionPolicy Bypass -Command "Start-Service ''' + SvcName + '''"',
-         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if ResultCode = 0 then
+    begin
+      SvcName := 'actions.runner.workdavid353-oss.erez-management.erez-runner';
+      Exec('sc.exe', 'create ' + SvcName + ' binpath= "C:\actions-runner\bin\RunnerService.exe" start= auto displayname= "GitHub Actions Runner (erez-runner)"',
+           '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('sc.exe', 'failure ' + SvcName + ' reset= 86400 actions= restart/5000/restart/5000/restart/5000',
+           '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec(PS, '-ExecutionPolicy Bypass -Command "Start-Service ''' + SvcName + '''"',
+           '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end else
+      MsgBox('Runner token expired or invalid — skip for now.' + #13#10 + 'Get a new token from GitHub and run: C:\actions-runner\config.cmd', mbInformation, MB_OK);
   end;
 
   { 7. Backup setup (optional) }
