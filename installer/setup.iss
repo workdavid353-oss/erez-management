@@ -134,7 +134,21 @@ begin
   SaveStringToFile(RunnerDir + '\.env.production',  EnvContent, False);
 
   { 3. Docker build from bundled dist (no git/npm needed) }
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker build --pull=false --no-cache -t erez-frontend C:\erez-legal"', '');
+  Exec(PS, '-ExecutionPolicy Bypass -Command "docker info 2>$null; exit $LASTEXITCODE"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if ResultCode <> 0 then
+  begin
+    MsgBox(
+      'Docker is not running or not installed.' + #13#10 + #13#10 +
+      'Please:' + #13#10 +
+      '1. Install Docker Desktop from https://www.docker.com/products/docker-desktop/' + #13#10 +
+      '2. Start Docker Desktop and wait for it to fully load' + #13#10 +
+      '3. Re-run this installer' + #13#10 + #13#10 +
+      'The files have been copied to C:\erez-legal — no need to re-enter your settings.',
+      mbError, MB_OK);
+    Exit;
+  end;
+
+  if not RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker build --pull=false --no-cache -t erez-frontend C:\erez-legal"', '') then Exit;
   Exec(PS, '-ExecutionPolicy Bypass -Command "docker stop erez-frontend 2>$null; docker rm erez-frontend 2>$null"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker run -d -p 80:80 --name erez-frontend --restart unless-stopped erez-frontend"', '');
 
@@ -166,31 +180,45 @@ begin
   { 7. Backup setup (optional) }
   if SetupBackup then
   begin
-    RunCmd(PS,
+    Exec(PS,
       '-ExecutionPolicy Bypass -Command "' +
+      'try {' +
       '$v = (Invoke-RestMethod https://api.github.com/repos/rclone/rclone/releases/latest).tag_name ;' +
       'Invoke-WebRequest -Uri (''https://github.com/rclone/rclone/releases/download/'' + $v + ''/rclone-'' + $v + ''-windows-amd64.zip'') -OutFile C:\actions-runner\rclone.zip -UseBasicParsing ;' +
       '$z = [System.IO.Compression.ZipFile]::OpenRead(''C:\actions-runner\rclone.zip'') ;' +
       '$e = $z.Entries | Where-Object { $_.Name -eq ''rclone.exe'' } ;' +
       '[System.IO.Compression.ZipFileExtensions]::ExtractToFile($e, ''C:\actions-runner\rclone.exe'', $true) ;' +
-      '$z.Dispose() "',
-      '');
-
-    Exec(PS,
-      '-ExecutionPolicy Bypass -Command "' +
-      '$a = New-ScheduledTaskAction -Execute powershell.exe -Argument ''-ExecutionPolicy Bypass -NonInteractive -File C:\actions-runner\backup.ps1'' ;' +
-      '$t = New-ScheduledTaskTrigger -Daily -At 02:00 ;' +
-      '$s = New-ScheduledTaskSettingsSet -StartWhenAvailable ;' +
-      'Register-ScheduledTask -TaskName ''Erez DB Backup'' -Action $a -Trigger $t -Settings $s -RunLevel Highest -User SYSTEM -Force "',
+      '$z.Dispose() ;' +
+      'exit 0' +
+      '} catch { exit 1 }" ',
       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-    MsgBox(
-      'rclone downloaded.' + #13#10 + #13#10 +
-      'NEXT STEP: Authenticate Google Drive by running:' + #13#10 +
-      'C:\actions-runner\rclone.exe config' + #13#10 + #13#10 +
-      'Then test the backup:' + #13#10 +
-      'powershell -File C:\actions-runner\backup.ps1',
-      mbInformation, MB_OK);
+    if ResultCode = 0 then
+    begin
+      Exec(PS,
+        '-ExecutionPolicy Bypass -Command "' +
+        '$a = New-ScheduledTaskAction -Execute powershell.exe -Argument ''-ExecutionPolicy Bypass -NonInteractive -File C:\actions-runner\backup.ps1'' ;' +
+        '$t = New-ScheduledTaskTrigger -Daily -At 02:00 ;' +
+        '$s = New-ScheduledTaskSettingsSet -StartWhenAvailable ;' +
+        'Register-ScheduledTask -TaskName ''Erez DB Backup'' -Action $a -Trigger $t -Settings $s -RunLevel Highest -User SYSTEM -Force "',
+        '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+      MsgBox(
+        'rclone downloaded.' + #13#10 + #13#10 +
+        'NEXT STEP: Authenticate Google Drive by running:' + #13#10 +
+        'C:\actions-runner\rclone.exe config' + #13#10 + #13#10 +
+        'Then test the backup:' + #13#10 +
+        'powershell -File C:\actions-runner\backup.ps1',
+        mbInformation, MB_OK);
+    end else
+      MsgBox(
+        'rclone download failed (network issue).' + #13#10 + #13#10 +
+        'The rest of the installation completed successfully.' + #13#10 + #13#10 +
+        'To set up backup manually later:' + #13#10 +
+        '1. Download rclone from https://rclone.org/downloads/' + #13#10 +
+        '2. Place rclone.exe in C:\actions-runner\' + #13#10 +
+        '3. Run: C:\actions-runner\rclone.exe config',
+        mbInformation, MB_OK);
   end;
 end;
 
