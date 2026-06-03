@@ -24,8 +24,11 @@ ShowLanguageDialog=no
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\INSTALL.html";  DestDir: "C:\erez-legal";     Flags: ignoreversion
-Source: "backup.ps1";       DestDir: "C:\actions-runner"; Flags: ignoreversion
+Source: "..\INSTALL.html";       DestDir: "C:\erez-legal";                  Flags: ignoreversion
+Source: "backup.ps1";            DestDir: "C:\actions-runner";              Flags: ignoreversion
+Source: "..\dist\*";             DestDir: "C:\erez-legal\dist";             Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\Dockerfile";         DestDir: "C:\erez-legal";                  Flags: ignoreversion
+Source: "..\nginx.conf";         DestDir: "C:\erez-legal";                  Flags: ignoreversion
 
 [Code]
 var
@@ -130,18 +133,8 @@ begin
                 'VITE_SUPABASE_SERVICE_ROLE_KEY=' + ServiceKey;
   SaveStringToFile(RunnerDir + '\.env.production',  EnvContent, False);
 
-  { 3. Clone repo }
-  ForceDirectories('C:\erez-legal\repo');
-  Exec(PS, '-ExecutionPolicy Bypass -Command "if (!(Test-Path ''C:\erez-legal\repo\.git'')) { git clone https://github.com/workdavid353-oss/erez-management.git C:\erez-legal\repo } else { Set-Location C:\erez-legal\repo; git pull }"',
-       '', SW_SHOW, ewWaitUntilTerminated, ResultCode);
-  SaveStringToFile('C:\erez-legal\repo\.env.production', EnvContent, False);
-
-  { 4. npm install + build — use empty WorkDir, navigate inside command }
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location C:\erez-legal\repo; npm ci"', '');
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "Set-Location C:\erez-legal\repo; npm run build"', '');
-
-  { 5. Docker deploy }
-  RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker build --pull=false --no-cache -t erez-frontend C:\erez-legal\repo"', '');
+  { 3. Docker build from bundled dist (no git/npm needed) }
+  RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker build --pull=false --no-cache -t erez-frontend C:\erez-legal"', '');
   Exec(PS, '-ExecutionPolicy Bypass -Command "docker stop erez-frontend 2>$null; docker rm erez-frontend 2>$null"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   RunCmd(PS, '-ExecutionPolicy Bypass -Command "docker run -d -p 80:80 --name erez-frontend --restart unless-stopped erez-frontend"', '');
 
