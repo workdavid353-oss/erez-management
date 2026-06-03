@@ -61,18 +61,25 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
     setSaving(true)
     setError('')
 
-    const res = await fetch('/api/admin-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'create',
-        email: form.email.trim(),
-        password: form.password,
-        full_name: form.full_name.trim(),
-        role: form.role,
-      }),
-    })
-    const result = await res.json()
+    let result
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          email: form.email.trim(),
+          password: form.password,
+          full_name: form.full_name.trim(),
+          role: form.role,
+        }),
+      })
+      result = await res.json()
+    } catch {
+      setSaving(false)
+      setError('שגיאת חיבור לשרת — נסה שוב')
+      return
+    }
     if (result.error) {
       setSaving(false)
       setError(result.error === 'User already registered' ? 'האימייל כבר קיים במערכת' : result.error)
