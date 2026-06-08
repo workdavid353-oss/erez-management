@@ -143,25 +143,42 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
 }
 
 function EditUserModal({ user, onClose, onSaved }) {
-  const [role, setRole] = useState(user.role)
-  const [name, setName] = useState(user.full_name)
+  const [role,   setRole]   = useState(user.role)
+  const [name,   setName]   = useState(user.full_name)
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
 
   async function handleSave() {
-    await supabase.from('profiles').update({ full_name: name, role }).eq('id', user.id)
-    onSaved()
-    onClose()
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateProfile', userId: user.id, full_name: name, role }),
+      })
+      const result = await res.json()
+      if (result.error) { setError(result.error); setSaving(false); return }
+      onSaved()
+      onClose()
+    } catch {
+      setError('שגיאת חיבור לשרת — נסה שוב')
+      setSaving(false)
+    }
   }
 
   return (
     <Modal title={`עריכת משתמש — ${user.full_name}`} onClose={onClose} footer={
       <>
         <button className="btn" onClick={onClose}>סגור</button>
-        <button className="btn primary" onClick={handleSave}>שמור שינויים</button>
+        <button className="btn primary" onClick={handleSave} disabled={saving}>
+          {saving ? 'שומר...' : 'שמור שינויים'}
+        </button>
       </>
     }>
       <div className="field-input">
         <label>שם מלא</label>
-        <input value={name} onChange={e => setName(e.target.value)} />
+        <input className="field-input-el" value={name} onChange={e => setName(e.target.value)} />
       </div>
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
@@ -171,6 +188,11 @@ function EditUserModal({ user, onClose, onSaved }) {
           ))}
         </div>
       </div>
+      {error && (
+        <div style={{ marginTop: 12, fontSize: 13, color: 'var(--status-urgent)', padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 6, border: '1px solid var(--status-urgent)' }}>
+          {error}
+        </div>
+      )}
     </Modal>
   )
 }

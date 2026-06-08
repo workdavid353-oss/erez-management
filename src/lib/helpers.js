@@ -12,6 +12,15 @@ export const STATUS_LABEL = {
 export const PRIORITY_LABEL = { high: 'גבוהה', med: 'בינונית', low: 'נמוכה' }
 
 // מיפוי סטטוס עברי → מפתח CSS
+export const STATUS_ORDER = {
+  'דחוף':   0,
+  'חדש':    1,
+  'בטיפול': 2,
+  'ממתין':  3,
+  'בוצע':   4,
+  'סגור':   5,
+}
+
 export const STATUS_CLASS = {
   'חדש':    'pending',
   'בטיפול': 'progress',

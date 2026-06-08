@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { STATUS_CLASS, fmtDate, fmtDateTime, initials } from '../lib/helpers'
+import { STATUS_CLASS, STATUS_ORDER, fmtDate, fmtDateTime, initials } from '../lib/helpers'
+import { createFinalCheckTasks } from '../lib/taskUtils'
 import { IcChevron, IcEdit, IcPlus, IcCheck, IcX, IcTrash } from '../components/Icons'
 
 const CATEGORIES = ['אזרחי', 'פלילי', 'מסחרי', 'משפחה', 'נדל"ן', 'עבודה']
@@ -99,7 +100,7 @@ function AddTaskModal({ caseId, onClose, onSaved }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    supabase.from('profiles').select('id, full_name').eq('role', 'employee')
+    supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name')
       .then(({ data }) => setEmployees(data || []))
   }, [])
 
@@ -173,7 +174,7 @@ function AddTaskModal({ caseId, onClose, onSaved }) {
   )
 }
 
-function TaskRow({ assignment, canEdit, onUpdate, onDelete }) {
+function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
   const [expanded,  setExpanded]  = useState(false)
   const [employees, setEmployees] = useState([])
   const [form, setForm] = useState({
@@ -188,7 +189,7 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete }) {
 
   function openEdit() {
     if (employees.length === 0) {
-      supabase.from('profiles').select('id, full_name').eq('role', 'employee')
+      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name')
         .then(({ data }) => setEmployees(data || []))
     }
     setExpanded(e => !e)
@@ -202,12 +203,22 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete }) {
       const updatedEmployee = employees.find(e => e.id === form.employee_id) || assignment.employee
       onUpdate({ ...assignment, ...form, employee: updatedEmployee })
       setExpanded(false)
+      if (form.status === 'בוצע' && assignment.status !== 'בוצע' && assignment.task_type !== 'בדיקה סופית') {
+        const newTasks = await createFinalCheckTasks(assignment.case_id)
+        if (newTasks.length > 0) onNewTasks?.(newTasks)
+      }
     }
   }
 
   async function markDone() {
     const { error } = await supabase.from('case_assignments').update({ status: 'בוצע' }).eq('id', assignment.id)
-    if (!error) onUpdate({ ...assignment, status: 'בוצע' })
+    if (!error) {
+      onUpdate({ ...assignment, status: 'בוצע' })
+      if (assignment.task_type !== 'בדיקה סופית') {
+        const newTasks = await createFinalCheckTasks(assignment.case_id)
+        if (newTasks.length > 0) onNewTasks?.(newTasks)
+      }
+    }
   }
 
   const cls = STATUS_CLASS[assignment.status] || 'pending'
@@ -336,6 +347,10 @@ export default function CaseDetailPage({ caseId, onBack }) {
     setAssign(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a))
   }
 
+  function handleNewTasks(newTasks) {
+    setAssign(prev => [...prev, ...newTasks])
+  }
+
   if (loading) return <div className="app-loading" style={{ minHeight: 'unset', padding: 60 }}>טוען תיק...</div>
   if (!c) return <div className="page"><button className="btn ghost sm" onClick={onBack}><IcChevron size={13} /> חזרה</button><p>תיק לא נמצא</p></div>
 
@@ -446,13 +461,14 @@ export default function CaseDetailPage({ caseId, onBack }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {assignments.map(a => (
+                    {[...assignments].sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)).map(a => (
                       <TaskRow
                         key={a.id}
                         assignment={a}
                         canEdit={isAdmin || a.employee_id === user?.id}
                         onUpdate={handleAssignUpdate}
                         onDelete={() => setConfirmDeleteTask(a.id)}
+                        onNewTasks={handleNewTasks}
                       />
                     ))}
                   </tbody>
