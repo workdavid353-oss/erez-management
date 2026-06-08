@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { STATUS_CLASS, STATUS_ORDER, fmtDate } from '../lib/helpers'
 import { createFinalCheckTasks } from '../lib/taskUtils'
-import { IcTasks, IcAlert, IcClock, IcCheck, IcPlus, IcX, IcEdit } from '../components/Icons'
+import { IcTasks, IcAlert, IcClock, IcCheck, IcPlus, IcX, IcEdit, IcSearch } from '../components/Icons'
 
 const STATUS_OPTIONS   = ['חדש', 'בטיפול', 'בוצע', 'ממתין']
 const PRIORITY_OPTIONS = ['גבוהה', 'בינונית', 'נמוכה']
@@ -172,28 +172,93 @@ function AddTaskModal({ onClose, onSaved, currentUser, isAdmin }) {
 
 function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
   const [expanded, setExpanded] = useState(false)
-  const [form,     setForm]     = useState({ status: t.status || 'חדש', notes: t.notes || '', target_date: t.target_date || '' })
+  const toLocal = (iso) => iso ? iso.slice(0, 16) : ''
+  const calcHours = (from, to) => {
+    if (!from || !to) return null
+    const diff = new Date(to) - new Date(from)
+    return diff > 0 ? Math.round(diff / 36000) / 100 : null
+  }
+
+  const [form,     setForm]     = useState({
+    status:      t.status      || 'חדש',
+    notes:       t.notes       || '',
+    target_date: t.target_date || '',
+    work_start:  toLocal(t.work_start),
+    work_end:    toLocal(t.work_end),
+  })
   const [saving,   setSaving]   = useState(false)
+  const [rowError, setRowError] = useState('')
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const calculatedHours = calcHours(form.work_start, form.work_end)
 
   const over = isOverdue(t.target_date) && t.status !== 'בוצע'
   const cls  = STATUS_CLASS[t.status] || 'pending'
 
+  const isWorking = t.work_start && !t.work_end
+
+  async function handleStartWork() {
+    setSaving(true); setRowError('')
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'startWork', taskId: t.id }),
+      })
+      const result = await res.json()
+      if (result.error) { setRowError(result.error); setSaving(false); return }
+      onUpdate({ ...t, work_start: new Date().toISOString(), status: 'בטיפול' })
+    } catch { setRowError('שגיאת חיבור — נסה לרענן את הדף') }
+    setSaving(false)
+  }
+
+  async function handlePauseWork() {
+    setSaving(true); setRowError('')
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pauseWork', taskId: t.id, workStart: t.work_start, prevHours: t.work_hours || 0 }),
+      })
+      const result = await res.json()
+      if (result.error) { setRowError(result.error); setSaving(false); return }
+      onUpdate({ ...t, work_start: null, work_hours: result.work_hours })
+    } catch { setRowError('שגיאת חיבור — נסה לרענן את הדף') }
+    setSaving(false)
+  }
+
+  async function handleFinishWork() {
+    setSaving(true); setRowError('')
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finishWork', taskId: t.id, caseId: t.case_id, workStart: t.work_start, prevHours: t.work_hours || 0 }),
+      })
+      const result = await res.json()
+      if (result.error) { setRowError(result.error); setSaving(false); return }
+      onUpdate({ ...t, work_start: null, work_end: new Date().toISOString(), work_hours: result.work_hours, status: 'בוצע' })
+      if (t.task_type !== 'בדיקה סופית') await createFinalCheckTasks(t.case_id, t.task_type)
+    } catch { setRowError('שגיאת חיבור — נסה לרענן את הדף') }
+    setSaving(false)
+  }
+
   async function handleSave() {
     setSaving(true)
+    setRowError('')
+    const hours = calcHours(form.work_start, form.work_end) ?? t.work_hours ?? null
     const { error } = await supabase.from('case_assignments').update({
       status:      form.status,
-      notes:       form.notes      || null,
+      notes:       form.notes       || null,
       target_date: form.target_date || null,
+      work_start:  form.work_start  || null,
+      work_end:    form.work_end    || null,
+      work_hours:  hours,
       updated_at:  new Date().toISOString(),
     }).eq('id', t.id)
     setSaving(false)
-    if (!error) {
-      onUpdate({ ...t, ...form })
-      setExpanded(false)
-      if (form.status === 'בוצע' && t.status !== 'בוצע' && t.task_type !== 'בדיקה סופית') {
-        await createFinalCheckTasks(t.case_id)
-      }
+    if (error) { setRowError(error.message); return }
+    onUpdate({ ...t, ...form, work_hours: hours })
+    setExpanded(false)
+    if (form.status === 'בוצע' && t.status !== 'בוצע' && t.task_type !== 'בדיקה סופית') {
+      await createFinalCheckTasks(t.case_id, t.task_type)
     }
   }
 
@@ -207,11 +272,34 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
         <td style={{ color: 'var(--text-muted)' }}>{t.task_type || '—'}</td>
         <td><span className={'status-cell ' + cls}><span className="dot" />{t.status || 'חדש'}</span></td>
         <td style={{ color: 'var(--text-muted)' }}>{t.priority || '—'}</td>
+        <td>
+          {t.work_hours != null
+            ? <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.work_hours} שע׳</span>
+            : isWorking
+              ? <span style={{ fontSize: 11, color: 'var(--status-progress)', fontWeight: 600 }}>⏱ בעבודה מ-{new Date(t.work_start).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>
+              : <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>—</span>
+          }
+        </td>
         <td><span className={'due mono' + (over ? ' overdue' : '')}>{fmtDate(t.target_date)}</span></td>
         <td style={{ color: 'var(--text-dim)', fontSize: 12, maxWidth: 220 }}>{t.notes || '—'}</td>
         <td onClick={e => e.stopPropagation()}>
           <div className="row-actions">
-            {t.status !== 'בוצע' && (
+            {t.status !== 'בוצע' && !isWorking && (
+              <button className="icon-btn" title={t.work_hours ? 'המשך עבודה' : 'התחל עבודה'} style={{ color: 'var(--status-progress)' }} onClick={handleStartWork} disabled={saving}>
+                <IcClock size={13} />
+              </button>
+            )}
+            {isWorking && (
+              <button className="icon-btn" title="עצור — המשך מאוחר יותר" style={{ color: 'var(--text-muted)' }} onClick={handlePauseWork} disabled={saving}>
+                ⏸
+              </button>
+            )}
+            {isWorking && (
+              <button className="icon-btn" title="סיים וסמן כהושלם" style={{ color: 'var(--brass)' }} onClick={handleFinishWork} disabled={saving}>
+                <IcCheck size={13} />
+              </button>
+            )}
+            {t.status !== 'בוצע' && !isWorking && (
               <button className="icon-btn" title="סמן כהושלם" onClick={() => onMarkDone(t.id, t.case?.id, t.task_type)}>
                 <IcCheck size={13} />
               </button>
@@ -228,6 +316,13 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
         </td>
       </tr>
 
+      {rowError && (
+        <tr>
+          <td colSpan={8} style={{ padding: '4px 20px', background: 'var(--bg-2)', fontSize: 12, color: 'var(--status-urgent)' }}>
+            {rowError}
+          </td>
+        </tr>
+      )}
       {expanded && (
         <tr>
           <td colSpan={7} style={{ padding: '14px 20px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
@@ -242,21 +337,43 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                 <div className="field-input">
                   <label>תאריך יעד</label>
-                  <input
-                    className="field-input-el"
-                    type="date"
-                    value={form.target_date}
-                    onChange={e => set('target_date', e.target.value)}
-                    style={{ colorScheme: 'var(--color-scheme, light)' }}
-                  />
+                  <input className="field-input-el" type="date" value={form.target_date} onChange={e => set('target_date', e.target.value)} style={{ colorScheme: 'var(--color-scheme, light)' }} />
                 </div>
                 <div className="field-input">
-                  <label>הערות</label>
-                  <input className="field-input-el" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="הערות..." />
+                  <label>התחלת עבודה</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
+                      value={form.work_start?.slice(0, 10) || ''}
+                      onChange={e => set('work_start', e.target.value + 'T' + (form.work_start?.slice(11, 16) || '00:00'))} />
+                    <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                      value={form.work_start?.slice(11, 16) || ''}
+                      onChange={e => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                  </div>
                 </div>
+                <div className="field-input">
+                  <label>סיום עבודה</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
+                      value={form.work_end?.slice(0, 10) || ''}
+                      onChange={e => set('work_end', e.target.value + 'T' + (form.work_end?.slice(11, 16) || '00:00'))} />
+                    <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                      value={form.work_end?.slice(11, 16) || ''}
+                      onChange={e => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                  </div>
+                </div>
+                <div className="field-input">
+                  <label>סה"כ שעות</label>
+                  <div className="field-input-el" style={{ background: 'var(--bg-2)', color: calculatedHours != null ? 'var(--text)' : 'var(--text-dim)', cursor: 'default' }}>
+                    {calculatedHours != null ? `${calculatedHours} שע׳` : '—'}
+                  </div>
+                </div>
+              </div>
+              <div className="field-input">
+                <label>הערות</label>
+                <input className="field-input-el" value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="הערות..." />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -278,6 +395,7 @@ export default function TasksPage({ onOpenCase }) {
   const [statusFilter,   setStatusFilter]   = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [addTaskOpen,    setAddTaskOpen]    = useState(false)
+  const [search,         setSearch]         = useState('')
 
   async function load() {
     const { data } = await supabase
@@ -298,7 +416,7 @@ export default function TasksPage({ onOpenCase }) {
     const { error } = await supabase.from('case_assignments').update({ status: 'בוצע' }).eq('id', taskId)
     if (!error) {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'בוצע' } : t))
-      if (caseId && taskType !== 'בדיקה סופית') await createFinalCheckTasks(caseId)
+      if (caseId && taskType !== 'בדיקה סופית') await createFinalCheckTasks(caseId, taskType)
     }
   }
 
@@ -311,6 +429,14 @@ export default function TasksPage({ onOpenCase }) {
     .filter(t => {
       if (statusFilter !== 'all' && t.status !== statusFilter) return false
       if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        return (
+          t.case?.name?.toLowerCase().includes(q) ||
+          t.task_type?.toLowerCase().includes(q) ||
+          t.notes?.toLowerCase().includes(q)
+        )
+      }
       return true
     })
     .sort((a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99))
@@ -353,6 +479,14 @@ export default function TasksPage({ onOpenCase }) {
       </div>
 
       <div className="toolbar">
+        <div className="search" style={{ minWidth: 220 }}>
+          <input
+            placeholder="חיפוש לפי תיק, סוג משימה, הערות..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <IcSearch className="search-icon" size={15} />
+        </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginLeft: 4 }}>סטטוס:</span>
           {statusOptions.map(s => (
@@ -385,6 +519,7 @@ export default function TasksPage({ onOpenCase }) {
                   <th>סוג המשימה</th>
                   <th>סטטוס</th>
                   <th>עדיפות</th>
+                  <th>שעות עבודה</th>
                   <th>תאריך יעד</th>
                   <th>הערות</th>
                   <th></th>

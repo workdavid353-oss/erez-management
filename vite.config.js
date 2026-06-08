@@ -51,6 +51,47 @@ function adminApiDevPlugin(env) {
               return send({ success: true })
             }
 
+            if (action === 'startWork') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/case_assignments?id=eq.${payload.taskId}`, {
+                method: 'PATCH', headers: hdrs(),
+                body: JSON.stringify({ work_start: new Date().toISOString(), status: 'בטיפול', updated_at: new Date().toISOString() }),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+              return send({ success: true })
+            }
+
+            if (action === 'pauseWork') {
+              const now          = new Date()
+              const sessionHours = Math.round((now - new Date(payload.workStart)) / 36000) / 100
+              const newTotal     = Math.round(((payload.prevHours || 0) + sessionHours) * 100) / 100
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/case_assignments?id=eq.${payload.taskId}`, {
+                method: 'PATCH', headers: hdrs(),
+                body: JSON.stringify({ work_start: null, work_hours: newTotal, updated_at: now.toISOString() }),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+              return send({ success: true, work_hours: newTotal })
+            }
+
+            if (action === 'finishWork') {
+              const now      = new Date()
+              let   newTotal = payload.prevHours || 0
+              if (payload.workStart) {
+                const sessionHours = Math.round((now - new Date(payload.workStart)) / 36000) / 100
+                newTotal = Math.round((newTotal + sessionHours) * 100) / 100
+              }
+              await fetch(`${SUPABASE_URL}/rest/v1/case_assignments?id=eq.${payload.taskId}`, {
+                method: 'PATCH', headers: hdrs(),
+                body: JSON.stringify({ work_start: null, work_end: now.toISOString(), work_hours: newTotal, status: 'בוצע', updated_at: now.toISOString() }),
+              })
+              const tRes  = await fetch(`${SUPABASE_URL}/rest/v1/case_assignments?case_id=eq.${payload.caseId}&work_hours=not.is.null&select=work_hours`, { headers: hdrs() })
+              const tasks = await tRes.json()
+              const caseTotal = Math.round((tasks || []).reduce((s, t) => s + (t.work_hours || 0), 0) * 100) / 100
+              await fetch(`${SUPABASE_URL}/rest/v1/cases?id=eq.${payload.caseId}`, {
+                method: 'PATCH', headers: hdrs(), body: JSON.stringify({ work_hours: caseTotal }),
+              })
+              return send({ success: true, work_hours: newTotal })
+            }
+
             if (action === 'createFinalCheckTasks') {
               const ownersRes = await fetch(
                 `${SUPABASE_URL}/rest/v1/profiles?role=eq.owner&select=id`,
@@ -62,7 +103,7 @@ function adminApiDevPlugin(env) {
               const rows = owners.map(o => ({
                 case_id:     payload.caseId,
                 employee_id: o.id,
-                task_type:   'בדיקה סופית',
+                task_type:   payload.taskType ? `${payload.taskType} - בדיקה סופית` : 'בדיקה סופית',
                 status:      'חדש',
                 priority:    'גבוהה',
                 updated_at:  new Date().toISOString(),
@@ -92,6 +133,19 @@ function adminApiDevPlugin(env) {
                 }),
               })
               if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Insert failed' }, 400) }
+              return send({ success: true })
+            }
+
+            if (action === 'updateCaseLocation') {
+              const r = await fetch(
+                `${SUPABASE_URL}/rest/v1/cases?id=eq.${payload.caseId}`,
+                {
+                  method: 'PATCH',
+                  headers: hdrs(),
+                  body: JSON.stringify({ physical_location: payload.physical_location ?? null }),
+                }
+              )
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Update failed' }, 400) }
               return send({ success: true })
             }
 

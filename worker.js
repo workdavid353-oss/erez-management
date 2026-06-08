@@ -45,6 +45,53 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }
 
+    if (action === 'startWork') {
+      const { error } = await supabase.from('case_assignments').update({
+        work_start: new Date().toISOString(),
+        status:     'בטיפול',
+        updated_at: new Date().toISOString(),
+      }).eq('id', payload.taskId)
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
+    if (action === 'pauseWork') {
+      const now          = new Date()
+      const sessionHours = Math.round((now - new Date(payload.workStart)) / 36000) / 100
+      const newTotal     = Math.round(((payload.prevHours || 0) + sessionHours) * 100) / 100
+      const { error } = await supabase.from('case_assignments').update({
+        work_start:  null,
+        work_hours:  newTotal,
+        updated_at:  now.toISOString(),
+      }).eq('id', payload.taskId)
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ success: true, work_hours: newTotal }), { headers: json })
+    }
+
+    if (action === 'finishWork') {
+      const now      = new Date()
+      let   newTotal = payload.prevHours || 0
+      if (payload.workStart) {
+        const sessionHours = Math.round((now - new Date(payload.workStart)) / 36000) / 100
+        newTotal = Math.round((newTotal + sessionHours) * 100) / 100
+      }
+      const { error } = await supabase.from('case_assignments').update({
+        work_start:  null,
+        work_end:    now.toISOString(),
+        work_hours:  newTotal,
+        status:      'בוצע',
+        updated_at:  now.toISOString(),
+      }).eq('id', payload.taskId)
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+
+      const { data: tasks } = await supabase.from('case_assignments')
+        .select('work_hours').eq('case_id', payload.caseId).not('work_hours', 'is', null)
+      const caseTotal = Math.round((tasks || []).reduce((s, t) => s + (t.work_hours || 0), 0) * 100) / 100
+      await supabase.from('cases').update({ work_hours: caseTotal }).eq('id', payload.caseId)
+
+      return new Response(JSON.stringify({ success: true, work_hours: newTotal }), { headers: json })
+    }
+
     if (action === 'createFinalCheckTasks') {
       const { data: owners } = await supabase
         .from('profiles').select('id').eq('role', 'owner')
@@ -53,7 +100,7 @@ async function handleAdminUser(request, env) {
       const rows = owners.map(o => ({
         case_id:     payload.caseId,
         employee_id: o.id,
-        task_type:   'בדיקה סופית',
+        task_type:   payload.taskType ? `${payload.taskType} - בדיקה סופית` : 'בדיקה סופית',
         status:      'חדש',
         priority:    'גבוהה',
         updated_at:  new Date().toISOString(),
@@ -74,6 +121,14 @@ async function handleAdminUser(request, env) {
         notes:       payload.notes       || null,
         updated_at:  new Date().toISOString(),
       })
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
+    if (action === 'updateCaseLocation') {
+      const { error } = await supabase.from('cases')
+        .update({ physical_location: payload.physical_location ?? null })
+        .eq('id', payload.caseId)
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }

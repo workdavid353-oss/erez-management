@@ -177,6 +177,13 @@ function AddTaskModal({ caseId, onClose, onSaved }) {
 function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
   const [expanded,  setExpanded]  = useState(false)
   const [employees, setEmployees] = useState([])
+  const toLocal   = (iso) => iso ? iso.slice(0, 16) : ''
+  const calcHours = (from, to) => {
+    if (!from || !to) return null
+    const diff = new Date(to) - new Date(from)
+    return diff > 0 ? Math.round(diff / 36000) / 100 : null
+  }
+
   const [form, setForm] = useState({
     employee_id: assignment.employee_id || '',
     status:      assignment.status      || 'חדש',
@@ -184,7 +191,11 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
     notes:       assignment.notes       || '',
     target_date: assignment.target_date || '',
     task_type:   assignment.task_type   || '',
+    work_start:  toLocal(assignment.work_start),
+    work_end:    toLocal(assignment.work_end),
   })
+
+  const calculatedHours = calcHours(form.work_start, form.work_end)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   function openEdit() {
@@ -198,13 +209,20 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
   const isOverdue = assignment.target_date && new Date(assignment.target_date) < new Date() && assignment.status !== 'בוצע'
 
   async function handleSave() {
-    const { error } = await supabase.from('case_assignments').update(form).eq('id', assignment.id)
+    const hours   = calcHours(form.work_start, form.work_end) ?? assignment.work_hours ?? null
+    const payload = {
+      ...form,
+      work_start: form.work_start || null,
+      work_end:   form.work_end   || null,
+      work_hours: hours,
+    }
+    const { error } = await supabase.from('case_assignments').update(payload).eq('id', assignment.id)
     if (!error) {
       const updatedEmployee = employees.find(e => e.id === form.employee_id) || assignment.employee
-      onUpdate({ ...assignment, ...form, employee: updatedEmployee })
+      onUpdate({ ...assignment, ...form, work_hours: hours, employee: updatedEmployee })
       setExpanded(false)
       if (form.status === 'בוצע' && assignment.status !== 'בוצע' && assignment.task_type !== 'בדיקה סופית') {
-        const newTasks = await createFinalCheckTasks(assignment.case_id)
+        const newTasks = await createFinalCheckTasks(assignment.case_id, assignment.task_type)
         if (newTasks.length > 0) onNewTasks?.(newTasks)
       }
     }
@@ -215,7 +233,7 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
     if (!error) {
       onUpdate({ ...assignment, status: 'בוצע' })
       if (assignment.task_type !== 'בדיקה סופית') {
-        const newTasks = await createFinalCheckTasks(assignment.case_id)
+        const newTasks = await createFinalCheckTasks(assignment.case_id, assignment.task_type)
         if (newTasks.length > 0) onNewTasks?.(newTasks)
       }
     }
@@ -235,6 +253,14 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
         <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{assignment.task_type || '—'}</td>
         <td><span className={'status-cell ' + cls}><span className="dot" />{assignment.status || 'חדש'}</span></td>
         <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{assignment.priority || '—'}</td>
+        <td>
+          {assignment.work_hours != null
+            ? <span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{assignment.work_hours} שע׳</span>
+            : assignment.work_start && !assignment.work_end
+              ? <span style={{ fontSize: 11, color: 'var(--status-progress)', fontWeight: 600 }}>⏱ בעבודה</span>
+              : <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>—</span>
+          }
+        </td>
         <td>
           <span className={'due mono' + (isOverdue ? ' overdue' : '')} style={{ fontSize: 12 }}>
             {fmtDate(assignment.target_date) || '—'}
@@ -263,7 +289,7 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={6} style={{ padding: '14px 20px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
+          <td colSpan={7} style={{ padding: '14px 20px', background: 'var(--bg-2)', borderBottom: '1px solid var(--line)' }}>
             <div className="field-grid">
               <div className="field">
                 <span className="label">עובד אחראי</span>
@@ -292,6 +318,34 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
                 <span className="label">תאריך יעד</span>
                 <input type="date" className="field-input-el" value={form.target_date || ''} onChange={e => set('target_date', e.target.value)} />
               </div>
+              <div className="field">
+                <span className="label">התחלת עבודה</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
+                    value={form.work_start?.slice(0, 10) || ''}
+                    onChange={e => set('work_start', e.target.value + 'T' + (form.work_start?.slice(11, 16) || '00:00'))} />
+                  <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                    value={form.work_start?.slice(11, 16) || ''}
+                    onChange={e => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <span className="label">סיום עבודה</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
+                    value={form.work_end?.slice(0, 10) || ''}
+                    onChange={e => set('work_end', e.target.value + 'T' + (form.work_end?.slice(11, 16) || '00:00'))} />
+                  <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                    value={form.work_end?.slice(11, 16) || ''}
+                    onChange={e => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                </div>
+              </div>
+              <div className="field">
+                <span className="label">סה"כ שעות</span>
+                <div className="field-input-el" style={{ background: 'var(--bg-2)', color: calculatedHours != null ? 'var(--text)' : 'var(--text-dim)', cursor: 'default' }}>
+                  {calculatedHours != null ? `${calculatedHours} שע׳` : '—'}
+                </div>
+              </div>
               <div className="field" style={{ gridColumn: '1/-1' }}>
                 <span className="label">הערות</span>
                 <textarea className="field-input-el" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} />
@@ -305,6 +359,79 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
         </tr>
       )}
     </>
+  )
+}
+
+function PhysicalLocationCard({ caseId, value }) {
+  const [editing,  setEditing]  = useState(false)
+  const [location, setLocation] = useState(value || '')
+  const [saved,    setSaved]    = useState(value || '')
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateCaseLocation', caseId, physical_location: location || null }),
+      })
+      const result = await res.json()
+      if (result.error) { setError(result.error); setSaving(false); return }
+      setSaved(location)
+      setEditing(false)
+    } catch {
+      setError('שגיאת חיבור לשרת')
+    }
+    setSaving(false)
+  }
+
+  function handleCancel() {
+    setLocation(saved)
+    setEditing(false)
+    setError('')
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>מיקום פיזי</h3>
+        {!editing && (
+          <button className="btn sm" onClick={() => setEditing(true)}>
+            <IcEdit size={12} /> ערוך
+          </button>
+        )}
+      </div>
+      <div className="card-body">
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input
+              className="field-input-el"
+              placeholder="לדוגמה: ארון 3, מדף עליון, תיקיה כחולה"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              autoFocus
+            />
+            {error && (
+              <div style={{ fontSize: 12, color: 'var(--status-urgent)' }}>{error}</div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn sm" onClick={handleCancel}>ביטול</button>
+              <button className="btn sm primary" onClick={handleSave} disabled={saving}>{saving ? 'שומר...' : 'שמור'}</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>📁</span>
+            <span style={{ color: saved ? 'var(--text)' : 'var(--text-dim)', fontSize: 13 }}>
+              {saved || 'לא הוגדר מיקום פיזי'}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -456,6 +583,7 @@ export default function CaseDetailPage({ caseId, onBack }) {
                       <th>משימה</th>
                       <th>סטטוס</th>
                       <th>עדיפות</th>
+                      <th>שעות עבודה</th>
                       <th>תאריך יעד</th>
                       <th></th>
                     </tr>
@@ -478,26 +606,30 @@ export default function CaseDetailPage({ caseId, onBack }) {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-head">
-            <h3>לוג עדכונים</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="card">
+            <div className="card-head">
+              <h3>לוג עדכונים</h3>
+            </div>
+            <ul className="timeline">
+              <li>
+                <span className="tl-dot" />
+                <div className="content">
+                  <div className="head"><strong>{c.updater?.full_name || 'מערכת'}</strong> עדכן את התיק לאחרונה</div>
+                  <div className="meta mono">{fmtDateTime(c.updated_at)}</div>
+                </div>
+              </li>
+              <li>
+                <span className="tl-dot" />
+                <div className="content">
+                  <div className="head">התיק נפתח במערכת</div>
+                  <div className="meta mono">{fmtDateTime(c.created_at)}</div>
+                </div>
+              </li>
+            </ul>
           </div>
-          <ul className="timeline">
-            <li>
-              <span className="tl-dot" />
-              <div className="content">
-                <div className="head"><strong>{c.updater?.full_name || 'מערכת'}</strong> עדכן את התיק לאחרונה</div>
-                <div className="meta mono">{fmtDateTime(c.updated_at)}</div>
-              </div>
-            </li>
-            <li>
-              <span className="tl-dot" />
-              <div className="content">
-                <div className="head">התיק נפתח במערכת</div>
-                <div className="meta mono">{fmtDateTime(c.created_at)}</div>
-              </div>
-            </li>
-          </ul>
+
+          <PhysicalLocationCard caseId={c.id} value={c.physical_location} />
         </div>
       </div>
     </div>
