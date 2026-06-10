@@ -125,6 +125,30 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }
 
+    if (action === 'sendFeedbackEmail') {
+      const { data: setting } = await supabase.from('app_settings').select('value').eq('key', 'feedback_email').single()
+      const notifyEmail = setting?.value
+      if (!notifyEmail || !env.RESEND_API_KEY) return new Response(JSON.stringify({ success: true }), { headers: json })
+
+      const typeLabel = payload.type === 'bug' ? '🐛 באג' : "✨ פיצ'ר"
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.RESEND_API_KEY}` },
+        body: JSON.stringify({
+          from:    'Erez Legal <onboarding@resend.dev>',
+          to:      [notifyEmail],
+          subject: `[Erez Legal] פנייה חדשה: ${typeLabel} — ${payload.title}`,
+          html: `<div dir="rtl" style="font-family:sans-serif;max-width:500px">
+            <h2>פנייה חדשה מ-${payload.userName || 'משתמש'}</h2>
+            <p><strong>סוג:</strong> ${typeLabel}</p>
+            <p><strong>כותרת:</strong> ${payload.title}</p>
+            ${payload.description ? `<p><strong>תיאור:</strong><br>${payload.description.replace(/\n/g, '<br>')}</p>` : ''}
+          </div>`,
+        }),
+      })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
     if (action === 'submitFeedback') {
       const { error } = await supabase.from('feedback').insert({
         user_id:     payload.userId     || null,

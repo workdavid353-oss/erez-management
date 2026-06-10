@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { fmtDateTime } from '../lib/helpers'
 import { IcMail } from '../components/Icons'
+import { useAuth } from '../context/AuthContext'
 
 const TYPE_LABEL   = { bug: '🐛 באג', feature: '✨ פיצ\'ר' }
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'נפתר', 'נדחה']
@@ -13,6 +14,7 @@ const STATUS_COLOR = {
 }
 
 export default function FeedbackAdminPage() {
+  const { profile } = useAuth()
   const [items,       setItems]       = useState([])
   const [loading,     setLoading]     = useState(true)
   const [typeFilter,  setTypeFilter]  = useState('all')
@@ -54,6 +56,12 @@ export default function FeedbackAdminPage() {
 
   const countBug     = items.filter(i => i.type === 'bug'     && i.status === 'חדש').length
   const countFeature = items.filter(i => i.type === 'feature' && i.status === 'חדש').length
+
+  if (profile?.role !== 'admin') return (
+    <div className="page">
+      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-dim)' }}>אין לך הרשאה לצפות בדף זה.</div>
+    </div>
+  )
 
   if (loading) return <div className="app-loading" style={{ minHeight: 'unset', padding: 60 }}>טוען פניות...</div>
 

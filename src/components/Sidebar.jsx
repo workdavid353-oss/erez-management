@@ -12,8 +12,8 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
     { id: 'tasks',      label: 'המשימות שלי',   icon: IcTasks     },
     { id: 'cases-mgmt', label: 'ניהול תיקים',   icon: IcFolder,   show: canManageCases },
     { id: 'reports',    label: 'דוחות',         icon: IcReports,  show: canSeeReports  },
-    { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: canSeeUsers    },
-    { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: canSeeUsers    },
+    { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: user?.role === 'owner' },
+    { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: user?.role === 'admin' },
   ].filter(it => it.show !== false)
 
   return (

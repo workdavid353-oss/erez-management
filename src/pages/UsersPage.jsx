@@ -128,7 +128,7 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ['admin', 'מנהל'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
+          {[['employee', 'עובד'], ...(isOwner ? [['owner', 'בעלים']] : [['admin', 'מנהל']])].map(([k, l]) => (
             <button key={k} className={'chip' + (form.role === k ? ' active' : '')} onClick={() => set('role', k)}>{l}</button>
           ))}
         </div>
@@ -142,7 +142,7 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
   )
 }
 
-function EditUserModal({ user, onClose, onSaved }) {
+function EditUserModal({ user, onClose, onSaved, isOwner }) {
   const [role,   setRole]   = useState(user.role)
   const [name,   setName]   = useState(user.full_name)
   const [saving, setSaving] = useState(false)
@@ -183,7 +183,7 @@ function EditUserModal({ user, onClose, onSaved }) {
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ['admin', 'מנהל'], ['owner', 'בעלים']].map(([k, l]) => (
+          {[['employee', 'עובד'], ...(isOwner ? [['owner', 'בעלים']] : [['admin', 'מנהל'], ['owner', 'בעלים']])].map(([k, l]) => (
             <button key={k} className={'chip' + (role === k ? ' active' : '')} onClick={() => setRole(k)}>{l}</button>
           ))}
         </div>
@@ -198,13 +198,19 @@ function EditUserModal({ user, onClose, onSaved }) {
 }
 
 export default function UsersPage() {
-  const { user: currentUser, isOwner } = useAuth()
+  const { user: currentUser, isOwner, profile } = useAuth()
   const [users,           setUsers]           = useState([])
   const [counts,          setCounts]          = useState({})
   const [loading,         setLoading]         = useState(true)
   const [editing,         setEditing]         = useState(null)
   const [creating,        setCreating]        = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  if (profile && profile.role !== 'owner') return (
+    <div className="page">
+      <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-dim)' }}>אין לך הרשאה לצפות בדף זה.</div>
+    </div>
+  )
 
   async function load() {
     const [profilesRes, assignRes] = await Promise.all([
@@ -278,8 +284,10 @@ export default function UsersPage() {
                 </span></td>
                 <td onClick={e => e.stopPropagation()}>
                   <div className="row-actions">
-                    <button className="icon-btn" title="ערוך" onClick={() => setEditing(u)}><IcEdit size={13} /></button>
-                    {isOwner && u.id !== currentUser?.id && (
+                    {!(isOwner && u.role === 'admin') && (
+                      <button className="icon-btn" title="ערוך" onClick={() => setEditing(u)}><IcEdit size={13} /></button>
+                    )}
+                    {isOwner && u.id !== currentUser?.id && u.role !== 'admin' && (
                       <button className="icon-btn" title="מחק משתמש" style={{ color: 'var(--status-urgent)' }} onClick={() => setConfirmDeleteId(u.id)}>
                         <IcTrash size={13} />
                       </button>
@@ -293,7 +301,7 @@ export default function UsersPage() {
       </div>
 
       {creating && <CreateUserModal onClose={() => setCreating(false)} onSaved={load} isOwner={isOwner} />}
-      {editing  && <EditUserModal user={editing} onClose={() => setEditing(null)} onSaved={load} />}
+      {editing  && <EditUserModal user={editing} onClose={() => setEditing(null)} onSaved={load} isOwner={isOwner} />}
       {confirmDeleteId && (
         <ConfirmModal
           title="מחיקת משתמש"

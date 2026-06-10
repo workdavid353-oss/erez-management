@@ -1,6 +1,9 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Corporate SSL proxy — allow self-signed certs in Node.js dev middleware
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
 function adminApiDevPlugin(env) {
   const SUPABASE_URL = env.VITE_SUPABASE_URL
   const SUPABASE_KEY = env.VITE_SUPABASE_SERVICE_ROLE_KEY
@@ -133,6 +136,30 @@ function adminApiDevPlugin(env) {
                 }),
               })
               if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Insert failed' }, 400) }
+              return send({ success: true })
+            }
+
+            if (action === 'sendFeedbackEmail') {
+              const sRes = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.feedback_email&select=value`, { headers: hdrs() })
+              const sData = await sRes.json()
+              const notifyEmail = sData?.[0]?.value
+              const RESEND_KEY  = env.VITE_RESEND_API_KEY
+              console.log('[sendFeedbackEmail] notifyEmail:', notifyEmail, '| hasKey:', !!RESEND_KEY)
+              if (!notifyEmail || !RESEND_KEY) return send({ success: true })
+
+              const typeLabel = payload.type === 'bug' ? '🐛 באג' : "✨ פיצ'ר"
+              const emailRes  = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
+                body: JSON.stringify({
+                  from:    'Erez Legal <onboarding@resend.dev>',
+                  to:      [notifyEmail],
+                  subject: `[Erez Legal] פנייה חדשה: ${typeLabel} — ${payload.title}`,
+                  html: `<div dir="rtl" style="font-family:sans-serif;max-width:500px"><h2>פנייה חדשה מ-${payload.userName || 'משתמש'}</h2><p><strong>סוג:</strong> ${typeLabel}</p><p><strong>כותרת:</strong> ${payload.title}</p>${payload.description ? `<p><strong>תיאור:</strong><br>${payload.description.replace(/\n/g, '<br>')}</p>` : ''}</div>`,
+                }),
+              })
+              const emailData = await emailRes.json()
+              console.log('[sendFeedbackEmail] Resend response:', emailRes.status, JSON.stringify(emailData))
               return send({ success: true })
             }
 

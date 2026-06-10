@@ -23,6 +23,20 @@ export default function FeedbackModal({ user, onClose }) {
     })
     setSaving(false)
     if (error) { setError(error.message); return }
+
+    // send email notification (fire and forget)
+    fetch('/api/admin-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:      'sendFeedbackEmail',
+        type,
+        title:       title.trim(),
+        description: description.trim() || null,
+        userName:    user?.full_name || null,
+      }),
+    }).catch(() => {})
+
     setDone(true)
   }
 
