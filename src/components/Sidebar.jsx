@@ -1,7 +1,7 @@
-import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder } from './Icons'
+import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback } from './Icons'
 import { roleLabel } from '../lib/helpers'
 
-export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose }) {
+export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose, onFeedback }) {
   const canSeeReports = user?.role === 'owner' || user?.role === 'secretary' || user?.role === 'admin'
   const canSeeUsers   = user?.role === 'owner' || user?.role === 'admin'
 
@@ -13,6 +13,7 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
     { id: 'cases-mgmt', label: 'ניהול תיקים',   icon: IcFolder,   show: canManageCases },
     { id: 'reports',    label: 'דוחות',         icon: IcReports,  show: canSeeReports  },
     { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: canSeeUsers    },
+    { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: canSeeUsers    },
   ].filter(it => it.show !== false)
 
   return (
@@ -44,6 +45,10 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
       <button className={'nav-item' + (current === 'settings' ? ' active' : '')} onClick={() => onNav('settings')}>
         <IcSettings size={16} />
         <span>הגדרות</span>
+      </button>
+      <button className="nav-item" onClick={onFeedback}>
+        <IcFeedback size={16} />
+        <span>דווח / בקש פיצ'ר</span>
       </button>
       <button className="nav-item" onClick={onLogout}>
         <IcLogout size={16} />

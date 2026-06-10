@@ -7,3 +7,4 @@ directory = "./dist"
 
 [vars]
 VITE_SUPABASE_URL = "https://ovtxeqpimhwkemsaovly.supabase.co"
+# RESEND_API_KEY is set as a Cloudflare secret (wrangler secret put RESEND_API_KEY)

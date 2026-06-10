@@ -29,6 +29,7 @@ export const IcLock        = (p) => <Icon {...p}><rect x="4" y="11" width="16" h
 export const IcCalendar    = (p) => <Icon {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></Icon>
 export const IcDownload    = (p) => <Icon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></Icon>
 export const IcMail        = (p) => <Icon {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></Icon>
+export const IcFeedback    = (p) => <Icon {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Icon>
 export const IcMenu        = (p) => <Icon {...p}><path d="M3 6h18M3 12h18M3 18h18"/></Icon>
 export const IcX           = (p) => <Icon {...p}><path d="M18 6L6 18M6 6l12 12"/></Icon>
 export const IcTrash       = (p) => <Icon {...p}><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></Icon>

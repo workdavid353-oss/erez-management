@@ -125,6 +125,42 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }
 
+    if (action === 'submitFeedback') {
+      const { error } = await supabase.from('feedback').insert({
+        user_id:     payload.userId     || null,
+        user_name:   payload.userName   || null,
+        type:        payload.type,
+        title:       payload.title,
+        description: payload.description || null,
+      })
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+
+      // send email notification if configured
+      const { data: setting } = await supabase.from('app_settings').select('value').eq('key', 'feedback_email').single()
+      const notifyEmail = setting?.value
+      if (notifyEmail && env.RESEND_API_KEY) {
+        const typeLabel = payload.type === 'bug' ? '🐛 באג' : "✨ פיצ'ר"
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.RESEND_API_KEY}` },
+          body: JSON.stringify({
+            from:    'Erez Legal <onboarding@resend.dev>',
+            to:      [notifyEmail],
+            subject: `[Erez Legal] פנייה חדשה: ${typeLabel} — ${payload.title}`,
+            html: `
+              <div dir="rtl" style="font-family:sans-serif;max-width:500px">
+                <h2>פנייה חדשה מ-${payload.userName || 'משתמש'}</h2>
+                <p><strong>סוג:</strong> ${typeLabel}</p>
+                <p><strong>כותרת:</strong> ${payload.title}</p>
+                ${payload.description ? `<p><strong>תיאור:</strong><br>${payload.description.replace(/\n/g, '<br>')}</p>` : ''}
+              </div>`,
+          }),
+        }).catch(() => {})
+      }
+
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
     if (action === 'updateCaseLocation') {
       const { error } = await supabase.from('cases')
         .update({ physical_location: payload.physical_location ?? null })

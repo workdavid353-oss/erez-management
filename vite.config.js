@@ -136,6 +136,41 @@ function adminApiDevPlugin(env) {
               return send({ success: true })
             }
 
+            if (action === 'submitFeedback') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/feedback`, {
+                method: 'POST',
+                headers: { ...hdrs(), Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  user_id:     payload.userId     || null,
+                  user_name:   payload.userName   || null,
+                  type:        payload.type,
+                  title:       payload.title,
+                  description: payload.description || null,
+                }),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+
+              // send email notification if configured
+              const sRes = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.feedback_email&select=value`, { headers: hdrs() })
+              const sData = await sRes.json()
+              const notifyEmail = sData?.[0]?.value
+              const RESEND_KEY  = env.VITE_RESEND_API_KEY
+              if (notifyEmail && RESEND_KEY) {
+                const typeLabel = payload.type === 'bug' ? '🐛 באג' : "✨ פיצ'ר"
+                await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
+                  body: JSON.stringify({
+                    from:    'Erez Legal <onboarding@resend.dev>',
+                    to:      [notifyEmail],
+                    subject: `[Erez Legal] פנייה חדשה: ${typeLabel} — ${payload.title}`,
+                    html: `<div dir="rtl" style="font-family:sans-serif;max-width:500px"><h2>פנייה חדשה מ-${payload.userName || 'משתמש'}</h2><p><strong>סוג:</strong> ${typeLabel}</p><p><strong>כותרת:</strong> ${payload.title}</p>${payload.description ? `<p><strong>תיאור:</strong><br>${payload.description.replace(/\n/g, '<br>')}</p>` : ''}</div>`,
+                  }),
+                }).catch(() => {})
+              }
+              return send({ success: true })
+            }
+
             if (action === 'updateCaseLocation') {
               const r = await fetch(
                 `${SUPABASE_URL}/rest/v1/cases?id=eq.${payload.caseId}`,

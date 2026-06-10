@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar'
+import FeedbackModal from './components/FeedbackModal'
 import { IcMenu } from './components/Icons'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -11,14 +12,16 @@ import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
 import CasesManagementPage from './pages/CasesManagementPage'
 import SettingsPage from './pages/SettingsPage'
+import FeedbackAdminPage from './pages/FeedbackAdminPage'
 
 function AppShell() {
   const { user, profile, loading, updatePreference } = useAuth()
 
-  const [screen, setScreen]       = useState('dashboard')
-  const [openCaseId, setCaseId]   = useState(null)
-  const [theme, setTheme]         = useState(() => localStorage.getItem('el-theme') || 'light')
-  const [sidebarOpen, setSidebar] = useState(true)
+  const [screen,       setScreen]      = useState('dashboard')
+  const [openCaseId,   setCaseId]      = useState(null)
+  const [theme,        setTheme]       = useState(() => localStorage.getItem('el-theme') || 'light')
+  const [sidebarOpen,  setSidebar]     = useState(true)
+  const [feedbackOpen, setFeedback]    = useState(false)
 
   // סנכרון תמה מה-DB כשהפרופיל נטען
   useEffect(() => {
@@ -59,6 +62,7 @@ function AppShell() {
   return (
     <div className="app">
       <main className={'main' + (sidebarOpen ? '' : ' sidebar-closed')}>
+      {feedbackOpen && <FeedbackModal user={profile} onClose={() => setFeedback(false)} />}
         {!sidebarOpen && (
           <button className="sidebar-open-btn" onClick={() => setSidebar(true)} title="פתח תפריט">
             <IcMenu size={16} />
@@ -71,6 +75,7 @@ function AppShell() {
         {screen === 'reports'   && <ReportsPage />}
         {screen === 'users'     && <UsersPage />}
         {screen === 'settings'  && <SettingsPage theme={theme} onTheme={handleThemeChange} />}
+        {screen === 'feedback'  && <FeedbackAdminPage />}
       </main>
 
       <div className={'sidebar-wrap' + (sidebarOpen ? '' : ' collapsed')}>
@@ -82,6 +87,7 @@ function AppShell() {
           onToggleTheme={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
           onLogout={handleLogout}
           onClose={() => setSidebar(false)}
+          onFeedback={() => setFeedback(true)}
         />
       </div>
     </div>

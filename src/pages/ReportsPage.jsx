@@ -93,8 +93,8 @@ export default function ReportsPage() {
 
       const [casesRes, empRes, assignRes] = await Promise.all([
         casesQ,
-        supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']),
-        supabase.from('case_assignments').select('employee_id, status'),
+        supabase.from('profiles').select('id, full_name, role').in('role', ['employee', 'admin', 'owner']),
+        supabase.from('case_assignments').select('employee_id, status, work_hours'),
       ])
       setCases(casesRes.data || [])
       setEmployees(empRes.data || [])
@@ -105,13 +105,27 @@ export default function ReportsPage() {
   }, [period, customRange, dateFrom, dateTo])
 
   function exportCSV() {
-    const rows = [['עובד', 'משימות פתוחות', 'סה"כ משימות']]
-    workload.forEach(w => rows.push([w.emp.full_name, w.open, w.total]))
+    const rows = [['עובד', 'משימות פתוחות', 'סה"כ משימות', 'שעות עבודה']]
+    workload.forEach(w => {
+      const hrs = hoursPerEmp.find(h => h.emp.id === w.emp.id)?.total ?? 0
+      rows.push([w.emp.full_name, w.open, w.total, hrs])
+    })
     const csv = rows.map(r => r.join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url; a.download = 'workload.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportHoursCSV() {
+    const rows = [['עובד', 'שעות עבודה', 'משימות עם מעקב']]
+    hoursPerEmp.forEach(r => rows.push([r.emp.full_name, r.total, r.tasks]))
+    const csv = rows.map(r => r.join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'hours-per-employee.csv'; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -136,6 +150,13 @@ export default function ReportsPage() {
     return { emp, open, total }
   }).sort((a, b) => b.open - a.open)
   const maxWl = Math.max(...workload.map(w => w.open), 1)
+
+  const hoursPerEmp = employees.map(emp => {
+    const tracked = assignments.filter(a => a.employee_id === emp.id && a.work_hours != null)
+    const total   = Math.round(tracked.reduce((s, a) => s + (a.work_hours || 0), 0) * 100) / 100
+    return { emp, total, tasks: tracked.length }
+  }).filter(r => r.total > 0).sort((a, b) => b.total - a.total)
+  const maxHours = Math.max(...hoursPerEmp.map(r => r.total), 1)
 
   return (
     <div className="page">
@@ -202,6 +223,52 @@ export default function ReportsPage() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="card-head">
+          <h3>שעות עבודה לפי עובד</h3>
+          <button className="btn sm" onClick={exportHoursCSV}><IcDownload size={12} /> ייצוא CSV</button>
+        </div>
+        <div className="card-body">
+          {hoursPerEmp.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: 24 }}>אין נתוני שעות עבודה עדיין</div>
+          ) : (
+            <table className="cases" style={{ marginBottom: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ minWidth: 200 }}>עובד</th>
+                  <th style={{ minWidth: 280 }}>שעות עבודה</th>
+                  <th>סה"כ שעות</th>
+                  <th>משימות עם מעקב</th>
+                  <th>ממוצע למשימה</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hoursPerEmp.map(r => (
+                  <tr key={r.emp.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="avatar">{initials(r.emp.full_name)}</span>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{r.emp.full_name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 8, background: 'var(--bg-2)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: (r.total / maxHours * 100) + '%', height: '100%', background: 'var(--brass)', borderRadius: 4 }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td><span className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{r.total} שע׳</span></td>
+                    <td><span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.tasks}</span></td>
+                    <td><span className="mono" style={{ fontSize: 12, color: 'var(--text-muted)' }}>{Math.round(r.total / r.tasks * 100) / 100} שע׳</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
