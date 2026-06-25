@@ -57,7 +57,7 @@ export default function FeedbackAdminPage() {
   const countBug     = items.filter(i => i.type === 'bug'     && i.status === 'חדש').length
   const countFeature = items.filter(i => i.type === 'feature' && i.status === 'חדש').length
 
-  if (profile?.role !== 'admin') return (
+  if (profile?.role !== 'sysadmin') return (
     <div className="page">
       <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-dim)' }}>אין לך הרשאה לצפות בדף זה.</div>
     </div>

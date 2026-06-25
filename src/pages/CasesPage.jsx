@@ -38,7 +38,7 @@ export default function CasesPage() {
     setLoading(true)
     const [casesRes, empRes] = await Promise.all([
       supabase.from('cases').select('*').order('serial_number', { ascending: true }),
-      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name'),
+      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'sysadmin', 'owner']).order('full_name'),
     ])
     setCases(casesRes.data || [])
     setEmployees(empRes.data || [])

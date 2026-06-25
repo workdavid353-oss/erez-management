@@ -128,7 +128,7 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ...(isOwner ? [['owner', 'בעלים']] : [['admin', 'מנהל']])].map(([k, l]) => (
+          {[['employee', 'עובד'], ['admin', 'מנהל'], ['sysadmin', 'מנהל מערכת'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
             <button key={k} className={'chip' + (form.role === k ? ' active' : '')} onClick={() => set('role', k)}>{l}</button>
           ))}
         </div>
@@ -183,7 +183,7 @@ function EditUserModal({ user, onClose, onSaved, isOwner }) {
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ...(isOwner ? [['owner', 'בעלים']] : [['admin', 'מנהל'], ['owner', 'בעלים']])].map(([k, l]) => (
+          {[['employee', 'עובד'], ['admin', 'מנהל'], ['sysadmin', 'מנהל מערכת'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
             <button key={k} className={'chip' + (role === k ? ' active' : '')} onClick={() => setRole(k)}>{l}</button>
           ))}
         </div>
@@ -284,10 +284,10 @@ export default function UsersPage() {
                 </span></td>
                 <td onClick={e => e.stopPropagation()}>
                   <div className="row-actions">
-                    {!(isOwner && u.role === 'admin') && (
+                    {!(isOwner && (u.role === 'admin' || u.role === 'sysadmin')) && (
                       <button className="icon-btn" title="ערוך" onClick={() => setEditing(u)}><IcEdit size={13} /></button>
                     )}
-                    {isOwner && u.id !== currentUser?.id && u.role !== 'admin' && (
+                    {isOwner && u.id !== currentUser?.id && u.role !== 'admin' && u.role !== 'sysadmin' && (
                       <button className="icon-btn" title="מחק משתמש" style={{ color: 'var(--status-urgent)' }} onClick={() => setConfirmDeleteId(u.id)}>
                         <IcTrash size={13} />
                       </button>

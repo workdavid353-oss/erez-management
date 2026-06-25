@@ -181,7 +181,7 @@ export default function CasesManagementPage({ onOpenCase }) {
       supabase.from('cases')
         .select('*, assigned_employee:assigned_employee_id(id, full_name), updater:updated_by(id, full_name)')
         .order('serial_number'),
-      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name'),
+      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'sysadmin', 'owner']).order('full_name'),
     ])
     setCases(casesRes.data || [])
     setEmployees(empRes.data || [])

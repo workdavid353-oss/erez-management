@@ -842,6 +842,8 @@ table.cases tbody tr.urgent-row td:first-child {
   border: 1px solid var(--line);
 }
 .badge-role.owner     { background: var(--ink); color: var(--brass-soft); border-color: var(--ink); }
+.badge-role.sysadmin  { background: oklch(0.28 0.08 265); color: oklch(0.88 0.08 265); border-color: oklch(0.45 0.12 265); }
+[data-theme="light"] .badge-role.sysadmin { background: oklch(0.92 0.06 265); color: oklch(0.3 0.12 265); border-color: oklch(0.7 0.1 265); }
 .badge-role.secretary { background: var(--brass-soft); color: var(--ink); border-color: oklch(0.78 0.06 75); }
 [data-theme="dark"] .badge-role.secretary { color: oklch(0.96 0.005 85); }
 .priority-cell { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; }

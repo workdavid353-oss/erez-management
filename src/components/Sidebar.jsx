@@ -2,10 +2,9 @@ import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, 
 import { roleLabel } from '../lib/helpers'
 
 export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose, onFeedback }) {
-  const canSeeReports = user?.role === 'owner' || user?.role === 'secretary' || user?.role === 'admin'
-  const canSeeUsers   = user?.role === 'owner' || user?.role === 'admin'
-
-  const canManageCases = user?.role === 'owner' || user?.role === 'admin'
+  const canSeeReports  = user?.role === 'owner' || user?.role === 'sysadmin' || user?.role === 'secretary' || user?.role === 'admin'
+  const canSeeUsers    = user?.role === 'owner'
+  const canManageCases = user?.role === 'owner' || user?.role === 'sysadmin' || user?.role === 'admin'
 
   const items = [
     { id: 'dashboard',  label: 'מסך ראשי',      icon: IcDashboard },
@@ -13,7 +12,7 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
     { id: 'cases-mgmt', label: 'ניהול תיקים',   icon: IcFolder,   show: canManageCases },
     { id: 'reports',    label: 'דוחות',         icon: IcReports,  show: canSeeReports  },
     { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: user?.role === 'owner' },
-    { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: user?.role === 'admin' },
+    { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: user?.role === 'sysadmin' },
   ].filter(it => it.show !== false)
 
   return (

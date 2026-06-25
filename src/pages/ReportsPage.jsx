@@ -93,7 +93,7 @@ export default function ReportsPage() {
 
       const [casesRes, empRes, assignRes] = await Promise.all([
         casesQ,
-        supabase.from('profiles').select('id, full_name, role').in('role', ['employee', 'admin', 'owner']),
+        supabase.from('profiles').select('id, full_name, role').in('role', ['employee', 'admin', 'sysadmin', 'owner']),
         supabase.from('case_assignments').select('employee_id, status, work_hours'),
       ])
       setCases(casesRes.data || [])

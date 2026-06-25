@@ -1,5 +1,5 @@
 export const roleLabel = (r) =>
-  ({ owner: 'בעלים', admin: 'מנהל', employee: 'עו"ד / עובד', member: 'עובד' }[r] || r)
+  ({ owner: 'בעלים', sysadmin: 'מנהל מערכת', admin: 'מנהל', employee: 'עו"ד / עובד', member: 'עובד' }[r] || r)
 
 export const initials = (name = '') =>
   name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('')
