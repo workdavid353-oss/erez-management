@@ -1,4 +1,4 @@
-import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback } from './Icons'
+import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback, IcHistory } from './Icons'
 import { roleLabel } from '../lib/helpers'
 
 export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose, onFeedback }) {
@@ -13,6 +13,7 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
     { id: 'reports',    label: 'דוחות',         icon: IcReports,  show: canSeeReports  },
     { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: user?.role === 'owner' },
     { id: 'feedback',   label: 'פניות משתמשים', icon: IcFeedback, show: user?.role === 'sysadmin' },
+    { id: 'audit',      label: 'לוג שינויים',   icon: IcHistory,  show: user?.role === 'sysadmin' },
   ].filter(it => it.show !== false)
 
   return (

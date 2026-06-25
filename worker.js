@@ -202,6 +202,23 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }
 
+    if (action === 'restore') {
+      const ALLOWED = ['cases', 'case_assignments', 'profiles']
+      if (!ALLOWED.includes(payload.table))
+        return new Response(JSON.stringify({ error: 'טבלה לא מותרת' }), { status: 400, headers: json })
+      const { error: upsertErr } = await supabase.from(payload.table).upsert(payload.old_data)
+      if (upsertErr)
+        return new Response(JSON.stringify({ error: upsertErr.message }), { status: 400, headers: json })
+      await supabase.from('audit_log').insert({
+        table_name: payload.table,
+        operation:  'RESTORE',
+        row_id:     payload.row_id,
+        old_data:   payload.old_data,
+        changed_by: payload.restored_by || null,
+      })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
     return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400, headers: json })
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: json })

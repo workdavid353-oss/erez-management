@@ -224,6 +224,29 @@ function adminApiDevPlugin(env) {
               return send({ success: true })
             }
 
+            if (action === 'restore') {
+              const ALLOWED = ['cases', 'case_assignments', 'profiles']
+              if (!ALLOWED.includes(payload.table)) return send({ error: 'טבלה לא מותרת' }, 400)
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/${payload.table}`, {
+                method: 'POST',
+                headers: { ...hdrs(), Prefer: 'resolution=merge-duplicates,return=minimal' },
+                body: JSON.stringify(payload.old_data),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'שחזור נכשל' }, 400) }
+              await fetch(`${SUPABASE_URL}/rest/v1/audit_log`, {
+                method: 'POST',
+                headers: { ...hdrs(), Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                  table_name: payload.table,
+                  operation:  'RESTORE',
+                  row_id:     payload.row_id,
+                  old_data:   payload.old_data,
+                  changed_by: payload.restored_by || null,
+                }),
+              })
+              return send({ success: true })
+            }
+
             send({ error: 'Unknown action' }, 400)
           } catch (e) {
             send({ error: e.message }, 500)

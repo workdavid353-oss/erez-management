@@ -13,6 +13,7 @@ import UsersPage from './pages/UsersPage'
 import CasesManagementPage from './pages/CasesManagementPage'
 import SettingsPage from './pages/SettingsPage'
 import FeedbackAdminPage from './pages/FeedbackAdminPage'
+import AuditLogPage from './pages/AuditLogPage'
 
 function AppShell() {
   const { user, profile, loading, updatePreference } = useAuth()
@@ -76,6 +77,7 @@ function AppShell() {
         {screen === 'users'     && <UsersPage />}
         {screen === 'settings'  && <SettingsPage theme={theme} onTheme={handleThemeChange} />}
         {screen === 'feedback'  && <FeedbackAdminPage />}
+        {screen === 'audit'     && <AuditLogPage />}
       </main>
 
       <div className={'sidebar-wrap' + (sidebarOpen ? '' : ' collapsed')}>
