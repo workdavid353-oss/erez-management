@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 import { roleLabel } from '../lib/helpers'
 
 function Toggle({ on: initial }) {
@@ -27,6 +28,31 @@ export default function SettingsPage({ theme, onTheme }) {
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
 
+  const [currentPw,  setCurrentPw]  = useState('')
+  const [newPw,      setNewPw]      = useState('')
+  const [confirmPw,  setConfirmPw]  = useState('')
+  const [pwSaving,   setPwSaving]   = useState(false)
+  const [pwError,    setPwError]    = useState('')
+  const [pwSaved,    setPwSaved]    = useState(false)
+
+  async function handleChangePassword() {
+    setPwError('')
+    if (newPw.length < 8) { setPwError('הסיסמה החדשה חייבת להכיל לפחות 8 תווים'); return }
+    if (newPw !== confirmPw) { setPwError('הסיסמאות אינן תואמות'); return }
+    setPwSaving(true)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: profile?.email,
+      password: currentPw,
+    })
+    if (signInError) { setPwSaving(false); setPwError('הסיסמה הנוכחית שגויה'); return }
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPw })
+    setPwSaving(false)
+    if (updateError) { setPwError('שגיאה בעדכון הסיסמה: ' + updateError.message); return }
+    setPwSaved(true)
+    setCurrentPw(''); setNewPw(''); setConfirmPw('')
+    setTimeout(() => setPwSaved(false), 3000)
+  }
+
   async function handleSaveName() {
     if (!displayName.trim() || displayName === profile?.full_name) return
     setSaving(true)
@@ -53,7 +79,6 @@ export default function SettingsPage({ theme, onTheme }) {
             ['profile',       'פרופיל'],
             ['security',      'אבטחה וסיסמה'],
             ['appearance',    'תצוגה — יום/לילה'],
-            ['notifications', 'התראות'],
           ].map(([k, l]) => (
             <button key={k} className={section === k ? 'active' : ''} onClick={() => setSection(k)}>{l}</button>
           ))}
@@ -95,17 +120,27 @@ export default function SettingsPage({ theme, onTheme }) {
               <div className="card-body">
                 <div className="field-input">
                   <label>סיסמה נוכחית</label>
-                  <input type="password" placeholder="••••••••" />
+                  <input type="password" placeholder="••••••••" value={currentPw} onChange={e => { setCurrentPw(e.target.value); setPwError(''); setPwSaved(false) }} />
                 </div>
                 <div className="field-input">
                   <label>סיסמה חדשה</label>
-                  <input type="password" placeholder="לפחות 8 תווים" />
+                  <input type="password" placeholder="לפחות 8 תווים" value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(''); setPwSaved(false) }} />
                 </div>
                 <div className="field-input">
                   <label>אישור סיסמה</label>
-                  <input type="password" />
+                  <input type="password" value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setPwError(''); setPwSaved(false) }} />
                 </div>
-                <button className="btn primary" style={{ marginTop: 8 }}>עדכן סיסמה</button>
+                {pwError && <div style={{ fontSize: 13, color: 'var(--status-overdue, #c0392b)', marginTop: 4 }}>{pwError}</div>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                  <button
+                    className="btn primary"
+                    onClick={handleChangePassword}
+                    disabled={pwSaving || !currentPw || !newPw || !confirmPw}
+                  >
+                    {pwSaving ? 'מעדכן...' : 'עדכן סיסמה'}
+                  </button>
+                  {pwSaved && <span style={{ fontSize: 13, color: 'var(--status-progress)' }}>✓ הסיסמה עודכנה בהצלחה</span>}
+                </div>
               </div>
             </div>
           )}
@@ -133,24 +168,6 @@ export default function SettingsPage({ theme, onTheme }) {
             </div>
           )}
 
-          {section === 'notifications' && (
-            <div className="card">
-              <div className="card-head"><h3>התראות</h3></div>
-              <div className="card-body">
-                {[
-                  ['משימות שעבר תאריך היעד שלהן', true],
-                  ['עדכון בתיק שאני משויך אליו',   true],
-                  ['תיק חדש נפתח במשרד',           false],
-                  ['דוח שבועי לבעלים',              true],
-                ].map(([label, on], i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
-                    <div style={{ fontSize: 14 }}>{label}</div>
-                    <Toggle on={on} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
