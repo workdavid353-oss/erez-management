@@ -39,7 +39,7 @@ function AddTaskModal({ onClose, onSaved, currentUser, isAdmin }) {
   useEffect(() => {
     Promise.all([
       supabase.from('cases').select('id, name, serial_number').order('serial_number'),
-      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'sysadmin', 'owner']).order('full_name'),
+      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name'),
     ]).then(([cRes, eRes]) => {
       setCases(cRes.data || [])
       setEmployees(eRes.data || [])

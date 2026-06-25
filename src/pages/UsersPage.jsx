@@ -128,7 +128,7 @@ function CreateUserModal({ onClose, onSaved, isOwner }) {
       <div className="field-input" style={{ marginTop: 12 }}>
         <label>תפקיד</label>
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-          {[['employee', 'עובד'], ['admin', 'מנהל'], ['sysadmin', 'מנהל מערכת'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
+          {[['employee', 'עובד'], ['admin', 'מנהל'], ...(isOwner ? [['owner', 'בעלים']] : [])].map(([k, l]) => (
             <button key={k} className={'chip' + (form.role === k ? ' active' : '')} onClick={() => set('role', k)}>{l}</button>
           ))}
         </div>

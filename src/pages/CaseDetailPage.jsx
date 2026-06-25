@@ -100,7 +100,7 @@ function AddTaskModal({ caseId, onClose, onSaved }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   useEffect(() => {
-    supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'sysadmin', 'owner']).order('full_name')
+    supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name')
       .then(({ data }) => setEmployees(data || []))
   }, [])
 
@@ -200,7 +200,7 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
 
   function openEdit() {
     if (employees.length === 0) {
-      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'sysadmin', 'owner']).order('full_name')
+      supabase.from('profiles').select('id, full_name').in('role', ['employee', 'admin', 'owner']).order('full_name')
         .then(({ data }) => setEmployees(data || []))
     }
     setExpanded(e => !e)
