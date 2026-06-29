@@ -139,6 +139,38 @@ function adminApiDevPlugin(env) {
               return send({ success: true })
             }
 
+            if (action === 'getFeedback') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/feedback?order=created_at.desc`, { headers: hdrs() })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+              return send({ data: await r.json() })
+            }
+
+            if (action === 'getSetting') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.${payload.key}&select=value`, { headers: hdrs() })
+              const d = await r.json()
+              return send({ value: d?.[0]?.value || null })
+            }
+
+            if (action === 'saveSetting') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/app_settings`, {
+                method: 'POST',
+                headers: { ...hdrs(), Prefer: 'resolution=merge-duplicates,return=minimal' },
+                body: JSON.stringify({ key: payload.key, value: payload.value }),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+              return send({ success: true })
+            }
+
+            if (action === 'updateFeedbackStatus') {
+              const r = await fetch(`${SUPABASE_URL}/rest/v1/feedback?id=eq.${payload.id}`, {
+                method: 'PATCH',
+                headers: hdrs(),
+                body: JSON.stringify({ status: payload.status }),
+              })
+              if (!r.ok) { const d = await r.json(); return send({ error: d.message || 'Failed' }, 400) }
+              return send({ success: true })
+            }
+
             if (action === 'sendFeedbackEmail') {
               const sRes = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.feedback_email&select=value`, { headers: hdrs() })
               const sData = await sRes.json()

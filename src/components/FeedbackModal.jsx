@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { IcX } from './Icons'
 
 export default function FeedbackModal({ user, onClose }) {
@@ -14,30 +13,27 @@ export default function FeedbackModal({ user, onClose }) {
     if (!title.trim()) { setError('יש להזין כותרת'); return }
     setSaving(true)
     setError('')
-    const { error } = await supabase.from('feedback').insert({
-      user_id:     user?.id          || null,
-      user_name:   user?.full_name   || null,
-      type,
-      title:       title.trim(),
-      description: description.trim() || null,
-    })
-    setSaving(false)
-    if (error) { setError(error.message); return }
-
-    // send email notification (fire and forget)
-    fetch('/api/admin-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action:      'sendFeedbackEmail',
-        type,
-        title:       title.trim(),
-        description: description.trim() || null,
-        userName:    user?.full_name || null,
-      }),
-    }).catch(() => {})
-
-    setDone(true)
+    try {
+      const res = await fetch('/api/admin-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action:      'submitFeedback',
+          userId:      user?.id        || null,
+          userName:    user?.full_name || null,
+          type,
+          title:       title.trim(),
+          description: description.trim() || null,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setDone(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

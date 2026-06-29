@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
 import { fmtDateTime } from '../lib/helpers'
 import { IcMail } from '../components/Icons'
 import { useAuth } from '../context/AuthContext'
+
+const api = (body) => fetch('/api/admin-user', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+}).then(r => r.json())
 
 const TYPE_LABEL   = { bug: '🐛 באג', feature: '✨ פיצ\'ר' }
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'נפתר', 'נדחה']
@@ -26,26 +31,25 @@ export default function FeedbackAdminPage() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('feedback').select('*').order('created_at', { ascending: false }),
-      supabase.from('app_settings').select('value').eq('key', 'feedback_email').single(),
+      api({ action: 'getFeedback' }),
+      api({ action: 'getSetting', key: 'feedback_email' }),
     ]).then(([fbRes, settingRes]) => {
       setItems(fbRes.data || [])
-      setNotifyEmail(settingRes.data?.value || '')
+      setNotifyEmail(settingRes.value || '')
       setLoading(false)
     })
   }, [])
 
   async function saveEmail() {
     setEmailSaving(true)
-    await supabase.from('app_settings').upsert({ key: 'feedback_email', value: notifyEmail.trim() })
+    const res = await api({ action: 'saveSetting', key: 'feedback_email', value: notifyEmail.trim() })
     setEmailSaving(false)
-    setEmailSaved(true)
-    setTimeout(() => setEmailSaved(false), 2500)
+    if (!res.error) { setEmailSaved(true); setTimeout(() => setEmailSaved(false), 2500) }
   }
 
   async function updateStatus(id, status) {
-    const { error } = await supabase.from('feedback').update({ status }).eq('id', id)
-    if (!error) setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i))
+    const res = await api({ action: 'updateFeedbackStatus', id, status })
+    if (!res.error) setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i))
   }
 
   const filtered = items.filter(i => {

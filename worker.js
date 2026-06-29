@@ -149,6 +149,30 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ success: true }), { headers: json })
     }
 
+    if (action === 'getFeedback') {
+      const { data, error } = await supabase.from('feedback').select('*').order('created_at', { ascending: false })
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ data }), { headers: json })
+    }
+
+    if (action === 'getSetting') {
+      const { data, error } = await supabase.from('app_settings').select('value').eq('key', payload.key).single()
+      if (error && error.code !== 'PGRST116') return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ value: data?.value || null }), { headers: json })
+    }
+
+    if (action === 'saveSetting') {
+      const { error } = await supabase.from('app_settings').upsert({ key: payload.key, value: payload.value })
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
+    if (action === 'updateFeedbackStatus') {
+      const { error } = await supabase.from('feedback').update({ status: payload.status }).eq('id', payload.id)
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      return new Response(JSON.stringify({ success: true }), { headers: json })
+    }
+
     if (action === 'submitFeedback') {
       const { error } = await supabase.from('feedback').insert({
         user_id:     payload.userId     || null,
