@@ -200,6 +200,7 @@ function EditUserModal({ user, onClose, onSaved, isOwner }) {
 export default function UsersPage() {
   const { user: currentUser, isOwner, profile } = useAuth()
   const [users,           setUsers]           = useState([])
+  const [emails,          setEmails]          = useState({})
   const [counts,          setCounts]          = useState({})
   const [loading,         setLoading]         = useState(true)
   const [editing,         setEditing]         = useState(null)
@@ -213,11 +214,17 @@ export default function UsersPage() {
   )
 
   async function load() {
-    const [profilesRes, assignRes] = await Promise.all([
+    const [profilesRes, assignRes, emailsRes] = await Promise.all([
       supabase.from('profiles').select('*').order('full_name'),
       supabase.from('case_assignments').select('employee_id, status'),
+      fetch('/api/admin-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'listUsers' }),
+      }).then(r => r.json()).catch(() => ({})),
     ])
     setUsers(profilesRes.data || [])
+    setEmails(emailsRes.emails || {})
     const cnt = {}
     ;(assignRes.data || []).forEach(a => {
       if (a.status !== 'בוצע' && a.status !== 'סגור')
@@ -273,7 +280,7 @@ export default function UsersPage() {
                     <span className="avatar">{initials(u.full_name)}</span>
                     <div>
                       <div className="case-name">{u.full_name}</div>
-                      <div className="case-meta mono">{u.id.slice(0, 8)}…</div>
+                      <div className="case-meta mono">{emails[u.id] || '—'}</div>
                     </div>
                   </div>
                 </td>

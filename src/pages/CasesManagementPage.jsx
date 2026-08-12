@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../lib/categories'
 import { STATUS_CLASS, fmtDateTime, fmtDate } from '../lib/helpers'
-import { IcPlus, IcEdit, IcX, IcTrash, IcSearch, IcTable, IcGrid } from '../components/Icons'
+import { IcPlus, IcEdit, IcX, IcTrash, IcSearch, IcTable, IcGrid, IcFolder, IcLink } from '../components/Icons'
 
-const CATEGORIES    = ['אזרחי', 'פלילי', 'מסחרי', 'משפחה', 'נדל"ן', 'עבודה']
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'דחוף', 'ממתין', 'הושלם', 'סגור']
 
 const fmtILS = (v) => v != null && v !== '' ? Number(v).toLocaleString('he-IL') + ' ₪' : '—'
@@ -30,10 +30,93 @@ function ConfirmModal({ message, onConfirm, onClose }) {
   )
 }
 
-function CaseModal({ caseData, employees, userId, onClose, onSaved }) {
+function CategoryManagerModal({ categories, onClose, onChanged }) {
+  const [newName, setNewName] = useState('')
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [confirmId, setConfirmId] = useState(null)
+
+  async function handleAdd() {
+    const name = newName.trim()
+    if (!name) return
+    setSaving(true)
+    setError('')
+    const { error } = await supabase.from('categories').insert({ name })
+    setSaving(false)
+    if (error) { setError(error.code === '23505' ? 'קטגוריה זו כבר קיימת' : error.message); return }
+    setNewName('')
+    onChanged()
+  }
+
+  async function handleDelete(id) {
+    const { error } = await supabase.from('categories').delete().eq('id', id)
+    if (!error) onChanged()
+    setConfirmId(null)
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="card modal-box" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+        <div className="card-head">
+          <h3>ניהול קטגוריות</h3>
+          <button className="icon-btn" onClick={onClose}><IcX size={14} /></button>
+        </div>
+        <div className="card-body">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <input
+              className="field-input-el"
+              placeholder="שם קטגוריה חדשה..."
+              value={newName}
+              onChange={e => { setNewName(e.target.value); setError('') }}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              style={{ flex: 1 }}
+            />
+            <button className="btn primary" onClick={handleAdd} disabled={saving || !newName.trim()}>
+              <IcPlus size={14} /> הוסף
+            </button>
+          </div>
+
+          {error && (
+            <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--status-urgent)', padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 6, border: '1px solid var(--status-urgent)' }}>
+              {error}
+            </div>
+          )}
+
+          {categories.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-dim)', fontSize: 13 }}>אין קטגוריות עדיין</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {categories.map(cat => (
+                <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 6 }}>
+                  <span style={{ fontSize: 13 }}>{cat.name}</span>
+                  {confirmId === cat.id ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: 'var(--status-urgent)' }}>למחוק?</span>
+                      <button className="btn sm" onClick={() => setConfirmId(null)}>ביטול</button>
+                      <button className="btn sm primary" style={{ background: 'var(--status-urgent)', borderColor: 'var(--status-urgent)' }} onClick={() => handleDelete(cat.id)}>מחק</button>
+                    </div>
+                  ) : (
+                    <button className="icon-btn" title="מחק קטגוריה" style={{ color: 'var(--status-urgent)' }} onClick={() => setConfirmId(cat.id)}>
+                      <IcTrash size={13} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn" onClick={onClose}>סגור</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CaseModal({ caseData, employees, categoryNames, userId, onClose, onSaved }) {
   const isEdit = !!caseData
   const [form, setForm] = useState(isEdit ? { ...caseData } : {
-    name: '', court_case_number: '', category: '', status: 'חדש',
+    name: '', court_case_number: '', legal_case_number: '', server_location: '', category: '', status: 'חדש',
     subject: '', assigned_employee_id: '',
     initial_price: '', total_case_value: '', work_hours: '',
     client_offer: '', total_used: '', notes: '',
@@ -47,6 +130,8 @@ function CaseModal({ caseData, employees, userId, onClose, onSaved }) {
     const payload = {
       name:                 form.name?.trim(),
       court_case_number:    form.court_case_number   || null,
+      legal_case_number:    form.legal_case_number   || null,
+      server_location:      form.server_location     || null,
       category:             form.category            || null,
       status:               form.status              || 'חדש',
       subject:              form.subject             || null,
@@ -103,10 +188,18 @@ function CaseModal({ caseData, employees, userId, onClose, onSaved }) {
               <input className="field-input-el" placeholder="1234/2026" value={form.court_case_number || ''} onChange={e => set('court_case_number', e.target.value)} />
             </div>
             <div className="field">
+              <span className="label">מספר תיק בליגל</span>
+              <input className="field-input-el" value={form.legal_case_number || ''} onChange={e => set('legal_case_number', e.target.value)} />
+            </div>
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <span className="label">מיקום בשרת</span>
+              <input className="field-input-el" placeholder="https://... או \\server\path" value={form.server_location || ''} onChange={e => set('server_location', e.target.value)} />
+            </div>
+            <div className="field">
               <span className="label">קטגוריה</span>
               <select className="field-input-el" value={form.category || ''} onChange={e => set('category', e.target.value)}>
                 <option value="">— בחר —</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categoryNames.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             {/* שורה 3 */}
@@ -153,7 +246,8 @@ function CaseModal({ caseData, employees, userId, onClose, onSaved }) {
 }
 
 export default function CasesManagementPage({ onOpenCase }) {
-  const { user, profile, updatePreference } = useAuth()
+  const { user, profile, isAdmin, updatePreference } = useAuth()
+  const { categories, names: categoryNames, reload: reloadCategories } = useCategories()
   const [cases,     setCases]     = useState([])
   const [employees, setEmployees] = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -161,6 +255,7 @@ export default function CasesManagementPage({ onOpenCase }) {
   const [editing,   setEditing]   = useState(null)
   const [creating,  setCreating]  = useState(false)
   const [confirmId, setConfirmId] = useState(null)
+  const [catManagerOpen, setCatManagerOpen] = useState(false)
   const [view,      setView]      = useState(() => localStorage.getItem('cases-view') || 'table')
 
   // סנכרון תצוגה מה-DB כשהפרופיל נטען
@@ -203,6 +298,7 @@ export default function CasesManagementPage({ onOpenCase }) {
       c.name?.toLowerCase().includes(s) ||
       c.subject?.toLowerCase().includes(s) ||
       c.court_case_number?.toLowerCase().includes(s) ||
+      c.legal_case_number?.toLowerCase().includes(s) ||
       c.assigned_employee?.full_name?.toLowerCase().includes(s)
     )
   })
@@ -212,10 +308,13 @@ export default function CasesManagementPage({ onOpenCase }) {
   return (
     <div className="page">
       {creating && (
-        <CaseModal employees={employees} userId={user?.id} onClose={() => setCreating(false)} onSaved={load} />
+        <CaseModal employees={employees} categoryNames={categoryNames} userId={user?.id} onClose={() => setCreating(false)} onSaved={load} />
       )}
       {editing && (
-        <CaseModal caseData={editing} employees={employees} userId={user?.id} onClose={() => setEditing(null)} onSaved={load} />
+        <CaseModal caseData={editing} employees={employees} categoryNames={categoryNames} userId={user?.id} onClose={() => setEditing(null)} onSaved={load} />
+      )}
+      {catManagerOpen && (
+        <CategoryManagerModal categories={categories} onClose={() => setCatManagerOpen(false)} onChanged={reloadCategories} />
       )}
       {confirmId && (
         <ConfirmModal
@@ -231,14 +330,21 @@ export default function CasesManagementPage({ onOpenCase }) {
           <h1>ניהול תיקים</h1>
           <div className="sub">כל התיקים עם פרטים פיננסיים מלאים — {cases.length} תיקים במערכת</div>
         </div>
-        <button className="btn primary" onClick={() => setCreating(true)}>
-          <IcPlus size={14} /> תיק חדש
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {isAdmin && (
+            <button className="btn" onClick={() => setCatManagerOpen(true)}>
+              <IcFolder size={14} /> ניהול קטגוריות
+            </button>
+          )}
+          <button className="btn primary" onClick={() => setCreating(true)}>
+            <IcPlus size={14} /> תיק חדש
+          </button>
+        </div>
       </div>
 
       <div className="toolbar">
         <div className="search">
-          <input placeholder={"חיפוש לפי שם, נושא, מספר ביהמ\"ש, עובד…"} value={q} onChange={e => setQ(e.target.value)} />
+          <input placeholder={"חיפוש לפי שם, נושא, מספר ביהמ\"ש, מספר תיק בליגל, עובד…"} value={q} onChange={e => setQ(e.target.value)} />
           <IcSearch className="search-icon" size={15} />
         </div>
         <span style={{ color: 'var(--text-dim)', fontSize: 12, marginRight: 'auto' }}>
@@ -268,6 +374,7 @@ export default function CasesManagementPage({ onOpenCase }) {
                 <tr>
                   <th style={{ minWidth: 50 }}>מס׳</th>
                   <th style={{ minWidth: 110 }}>מס׳ ביהמ"ש</th>
+                  <th style={{ minWidth: 110 }}>מס׳ תיק בליגל</th>
                   <th style={{ minWidth: 200 }}>שם תיק</th>
                   <th style={{ minWidth: 160 }}>נושא</th>
                   <th style={{ minWidth: 120 }}>עובד מוקצה</th>
@@ -279,13 +386,14 @@ export default function CasesManagementPage({ onOpenCase }) {
                   <th style={{ minWidth: 120 }}>סה"כ נוצל</th>
                   <th style={{ minWidth: 130 }}>עודכן</th>
                   <th style={{ minWidth: 160 }}>הערות</th>
+                  <th style={{ minWidth: 40 }}>שרת</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={14} style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>לא נמצאו תיקים</td>
+                    <td colSpan={16} style={{ textAlign: 'center', padding: 40, color: 'var(--text-dim)' }}>לא נמצאו תיקים</td>
                   </tr>
                 ) : filtered.map(c => {
                   const cls = STATUS_CLASS[c.status] || 'pending'
@@ -293,6 +401,7 @@ export default function CasesManagementPage({ onOpenCase }) {
                     <tr key={c.id} onClick={() => onOpenCase?.(c.id)} className={c.status === 'דחוף' ? 'urgent-row' : ''} style={{ cursor: 'pointer' }}>
                       <td><span className="mono" style={{ fontSize: 12 }}>{c.serial_number}</span></td>
                       <td><span className="mono" style={{ fontSize: 12 }}>{c.court_case_number || '—'}</span></td>
+                      <td><span className="mono" style={{ fontSize: 12 }}>{c.legal_case_number || '—'}</span></td>
                       <td><div className="case-name">{c.name}</div></td>
                       <td style={{ color: 'var(--text-muted)', fontSize: 12, maxWidth: 180 }}>{c.subject || '—'}</td>
                       <td style={{ fontSize: 13 }}>{c.assigned_employee?.full_name || '—'}</td>
@@ -304,6 +413,13 @@ export default function CasesManagementPage({ onOpenCase }) {
                       <td className="mono" style={{ fontSize: 12 }}>{fmtILS(c.total_used)}</td>
                       <td><span className="mono" style={{ fontSize: 11, color: 'var(--text-muted)' }}>{fmtDateTime(c.updated_at)}</span></td>
                       <td style={{ color: 'var(--text-dim)', fontSize: 12, maxWidth: 180 }}>{c.notes || '—'}</td>
+                      <td onClick={e => e.stopPropagation()}>
+                        {c.server_location ? (
+                          <a href={c.server_location} target="_blank" rel="noopener noreferrer" title={c.server_location} className="icon-btn" style={{ color: 'var(--brass)' }}>
+                            <IcLink size={13} />
+                          </a>
+                        ) : <span style={{ color: 'var(--text-dim)' }}>—</span>}
+                      </td>
                       <td onClick={e => e.stopPropagation()}>
                         <div className="row-actions">
                           <button className="icon-btn" title="ערוך" onClick={() => setEditing(c)}><IcEdit size={13} /></button>
@@ -338,7 +454,14 @@ export default function CasesManagementPage({ onOpenCase }) {
                     </div>
                     <div className="case-name" style={{ fontSize: 14 }}>{c.name}</div>
                   </div>
-                  <span className={'status-cell ' + cls} style={{ flexShrink: 0 }}><span className="dot" />{c.status}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    {c.server_location && (
+                      <a href={c.server_location} target="_blank" rel="noopener noreferrer" title={c.server_location} className="icon-btn" style={{ color: 'var(--brass)' }} onClick={e => e.stopPropagation()}>
+                        <IcLink size={13} />
+                      </a>
+                    )}
+                    <span className={'status-cell ' + cls}><span className="dot" />{c.status}</span>
+                  </div>
                 </div>
 
                 <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1, fontSize: 12 }}>
@@ -357,6 +480,12 @@ export default function CasesManagementPage({ onOpenCase }) {
                       <div style={{ gridColumn: '1/-1' }}>
                         <span style={{ color: 'var(--text-dim)' }}>קטגוריה: </span>
                         <span style={{ color: 'var(--text-muted)' }}>{c.category}</span>
+                      </div>
+                    )}
+                    {c.legal_case_number && (
+                      <div style={{ gridColumn: '1/-1' }}>
+                        <span style={{ color: 'var(--text-dim)' }}>מס׳ תיק בליגל: </span>
+                        <span className="mono" style={{ color: 'var(--text-muted)' }}>{c.legal_case_number}</span>
                       </div>
                     )}
                   </div>

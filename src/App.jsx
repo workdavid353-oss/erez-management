@@ -8,6 +8,8 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import CaseDetailPage from './pages/CaseDetailPage'
 import TasksPage from './pages/TasksPage'
+import AllTasksPage from './pages/AllTasksPage'
+import CalendarPage from './pages/CalendarPage'
 import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
 import CasesManagementPage from './pages/CasesManagementPage'
@@ -72,6 +74,8 @@ function AppShell() {
         {screen === 'dashboard' && <DashboardPage onOpenCase={openCase} />}
         {screen === 'case'      && <CaseDetailPage caseId={openCaseId} onBack={() => goto('dashboard')} />}
         {screen === 'tasks'     && <TasksPage onOpenCase={openCase} />}
+        {screen === 'all-tasks' && <AllTasksPage onOpenCase={openCase} />}
+        {screen === 'calendar'  && <CalendarPage onOpenCase={openCase} />}
         {screen === 'cases-mgmt' && <CasesManagementPage onOpenCase={openCase} />}
         {screen === 'reports'   && <ReportsPage />}
         {screen === 'users'     && <UsersPage />}

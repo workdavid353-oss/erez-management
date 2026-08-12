@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../lib/categories'
 import { STATUS_CLASS, fmtDateTime, fmtDate, initials } from '../lib/helpers'
 import { IcBriefcase, IcClock, IcAlert, IcAward, IcSearch, IcPlus, IcFilter, IcDownload, IcX, IcTrash } from '../components/Icons'
 
-const CATEGORIES = ['אזרחי', 'פלילי', 'מסחרי', 'משפחה', 'נדל"ן', 'עבודה']
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'דחוף', 'ממתין', 'הושלם', 'סגור']
 
 const STATUS_COLOR = {
@@ -41,8 +41,8 @@ function ConfirmModal({ title, message, confirmLabel = 'אישור', onConfirm, 
   )
 }
 
-function NewCaseModal({ onClose, onSaved, userId }) {
-  const [form, setForm] = useState({ name: '', court_case_number: '', category: '', status: 'חדש', subject: '', additional_info: '' })
+function NewCaseModal({ onClose, onSaved, userId, categoryNames }) {
+  const [form, setForm] = useState({ name: '', court_case_number: '', legal_case_number: '', server_location: '', category: '', status: 'חדש', subject: '', additional_info: '' })
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -52,6 +52,8 @@ function NewCaseModal({ onClose, onSaved, userId }) {
     const { error } = await supabase.from('cases').insert({
       name: form.name,
       court_case_number: form.court_case_number || null,
+      legal_case_number: form.legal_case_number || null,
+      server_location: form.server_location || null,
       category: form.category || null,
       status: form.status,
       subject: form.subject || null,
@@ -80,10 +82,18 @@ function NewCaseModal({ onClose, onSaved, userId }) {
               <input className="field-input-el" placeholder="1234/2026" value={form.court_case_number} onChange={e => set('court_case_number', e.target.value)} />
             </div>
             <div className="field">
+              <span className="label">מספר תיק בליגל</span>
+              <input className="field-input-el" value={form.legal_case_number} onChange={e => set('legal_case_number', e.target.value)} />
+            </div>
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <span className="label">מיקום בשרת</span>
+              <input className="field-input-el" placeholder="https://... או \\server\path" value={form.server_location} onChange={e => set('server_location', e.target.value)} />
+            </div>
+            <div className="field">
               <span className="label">קטגוריה</span>
               <select className="field-input-el" value={form.category} onChange={e => set('category', e.target.value)}>
                 <option value="">— בחר —</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categoryNames.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
@@ -126,14 +136,27 @@ function StatCard({ icon: I, label, value, delta, up, down }) {
 
 export default function DashboardPage({ onOpenCase }) {
   const { user, isAdmin } = useAuth()
+  const { names: categoryNames } = useCategories()
   const [cases,       setCases]       = useState([])
   const [employees,   setEmployees]   = useState([])
   const [assignments, setAssignments] = useState({})
   const [loading,     setLoading]     = useState(true)
   const [q,           setQ]           = useState('')
   const [cat,         setCat]         = useState('all')
+  const [statusFilter,    setStatusFilter]    = useState([])
+  const [empFilter,       setEmpFilter]       = useState('all')
+  const [showAdvanced,    setShowAdvanced]    = useState(false)
   const [newCase,         setNewCase]         = useState(false)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  function toggleStatus(s) {
+    setStatusFilter(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
+  }
+  function clearAdvanced() {
+    setStatusFilter([])
+    setEmpFilter('all')
+  }
+  const advancedActive = statusFilter.length > 0 || empFilter !== 'all'
 
   async function load() {
     const [casesRes, empRes, assignRes] = await Promise.all([
@@ -199,6 +222,8 @@ export default function DashboardPage({ onOpenCase }) {
 
   const filtered = cases.filter(c => {
     if (cat !== 'all' && c.category !== cat) return false
+    if (statusFilter.length && !statusFilter.includes(c.status)) return false
+    if (empFilter !== 'all' && !assignments[c.id]?.[empFilter]) return false
     if (q.trim()) {
       const s = q.toLowerCase()
       if (!c.name?.toLowerCase().includes(s) && !c.subject?.toLowerCase().includes(s)) return false
@@ -223,7 +248,7 @@ export default function DashboardPage({ onOpenCase }) {
 
   return (
     <div className="page">
-      {newCase && <NewCaseModal userId={user?.id} onClose={() => setNewCase(false)} onSaved={load} />}
+      {newCase && <NewCaseModal userId={user?.id} categoryNames={categoryNames} onClose={() => setNewCase(false)} onSaved={load} />}
       {confirmDeleteId && (
         <ConfirmModal
           title="מחיקת תיק"
@@ -259,15 +284,40 @@ export default function DashboardPage({ onOpenCase }) {
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button className={'chip' + (cat === 'all' ? ' active' : '')} onClick={() => setCat('all')}>הכל</button>
-          {CATEGORIES.map(c => (
+          {categoryNames.map(c => (
             <button key={c} className={'chip' + (cat === c ? ' active' : '')} onClick={() => setCat(c)}>{c}</button>
           ))}
         </div>
-        <div style={{ marginRight: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button className="btn"><IcFilter size={14} /> סינון מתקדם</button>
+        <div style={{ marginRight: 'auto', display: 'flex', gap: 8, alignItems: 'center', position: 'relative' }}>
+          <button
+            className={'btn' + (advancedActive ? ' primary' : '')}
+            onClick={() => setShowAdvanced(v => !v)}
+          ><IcFilter size={14} /> סינון מתקדם{advancedActive ? ` (${statusFilter.length + (empFilter !== 'all' ? 1 : 0)})` : ''}</button>
           <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
             מציג <strong style={{ color: 'var(--text)' }}>{filtered.length}</strong> מתוך {cases.length}
           </span>
+          {showAdvanced && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowAdvanced(false)} />
+              <div className="card" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, width: 260, zIndex: 50, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>סטטוס</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {STATUS_OPTIONS.map(s => (
+                    <button key={s} className={'chip' + (statusFilter.includes(s) ? ' active' : '')} onClick={() => toggleStatus(s)}>{s}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>עורך דין מוקצה</div>
+                <select className="field-input-el" value={empFilter} onChange={e => setEmpFilter(e.target.value)} style={{ width: '100%' }}>
+                  <option value="all">הכל</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </select>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
+                  <button className="btn" onClick={clearAdvanced} disabled={!advancedActive}>נקה סינון</button>
+                  <button className="btn primary" onClick={() => setShowAdvanced(false)}>סגור</button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

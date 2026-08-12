@@ -45,6 +45,15 @@ function adminApiDevPlugin(env) {
               return send({ user: d })
             }
 
+            if (action === 'listUsers') {
+              const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?per_page=1000`, { headers: hdrs() })
+              const d = await r.json()
+              if (!r.ok) return send({ error: d.msg || d.message || 'Failed' }, 400)
+              const emails = {}
+              ;(d.users || []).forEach(u => { emails[u.id] = u.email })
+              return send({ emails })
+            }
+
             if (action === 'delete') {
               const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${payload.userId}`, {
                 method: 'DELETE',
@@ -130,8 +139,10 @@ function adminApiDevPlugin(env) {
                   task_type:   payload.task_type   || null,
                   status:      payload.status      || 'חדש',
                   priority:    payload.priority    || null,
-                  target_date: payload.target_date || null,
-                  notes:       payload.notes       || null,
+                  target_date:     payload.target_date     || null,
+                  target_time:     payload.target_time     || null,
+                  target_end_time: payload.target_end_time || null,
+                  notes:           payload.notes            || null,
                   updated_at:  new Date().toISOString(),
                 }),
               })
@@ -214,9 +225,10 @@ function adminApiDevPlugin(env) {
               const sData = await sRes.json()
               const notifyEmail = sData?.[0]?.value
               const RESEND_KEY  = env.VITE_RESEND_API_KEY
+              console.log('[submitFeedback] notifyEmail:', notifyEmail, '| hasResendKey:', !!RESEND_KEY)
               if (notifyEmail && RESEND_KEY) {
                 const typeLabel = payload.type === 'bug' ? '🐛 באג' : "✨ פיצ'ר"
-                await fetch('https://api.resend.com/emails', {
+                const emailRes = await fetch('https://api.resend.com/emails', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
                   body: JSON.stringify({
@@ -225,7 +237,9 @@ function adminApiDevPlugin(env) {
                     subject: `[Erez Legal] פנייה חדשה: ${typeLabel} — ${payload.title}`,
                     html: `<div dir="rtl" style="font-family:sans-serif;max-width:500px"><h2>פנייה חדשה מ-${payload.userName || 'משתמש'}</h2><p><strong>סוג:</strong> ${typeLabel}</p><p><strong>כותרת:</strong> ${payload.title}</p>${payload.description ? `<p><strong>תיאור:</strong><br>${payload.description.replace(/\n/g, '<br>')}</p>` : ''}</div>`,
                   }),
-                }).catch(() => {})
+                })
+                const emailData = await emailRes.json()
+                console.log('[submitFeedback] Resend status:', emailRes.status, JSON.stringify(emailData))
               }
               return send({ success: true })
             }

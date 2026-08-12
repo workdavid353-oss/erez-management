@@ -39,6 +39,14 @@ async function handleAdminUser(request, env) {
       return new Response(JSON.stringify({ user: data.user }), { headers: json })
     }
 
+    if (action === 'listUsers') {
+      const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
+      const emails = {}
+      data.users.forEach(u => { emails[u.id] = u.email })
+      return new Response(JSON.stringify({ emails }), { headers: json })
+    }
+
     if (action === 'delete') {
       const { error } = await supabase.auth.admin.deleteUser(payload.userId)
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })
@@ -117,8 +125,10 @@ async function handleAdminUser(request, env) {
         task_type:   payload.task_type   || null,
         status:      payload.status      || 'חדש',
         priority:    payload.priority    || null,
-        target_date: payload.target_date || null,
-        notes:       payload.notes       || null,
+        target_date:     payload.target_date     || null,
+        target_time:     payload.target_time     || null,
+        target_end_time: payload.target_end_time || null,
+        notes:           payload.notes            || null,
         updated_at:  new Date().toISOString(),
       })
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: json })

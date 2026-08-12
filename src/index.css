@@ -255,6 +255,19 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 }
 .nav-item.active .badge { background: var(--brass-soft); color: var(--ink); }
 [data-theme="dark"] .nav-item.active .badge { color: var(--text); }
+.nav-item.feedback-btn {
+  padding: 13px 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.sidebar-wrap .nav-item.feedback-btn {
+  animation: feedback-pulse 2s ease-in-out infinite;
+}
+.nav-item.feedback-btn:hover { background: var(--status-blocked-bg); }
+@keyframes feedback-pulse {
+  0%, 100% { color: var(--status-urgent); }
+  50%      { color: var(--status-blocked); }
+}
 .sidebar-spacer { flex: 1; }
 .sidebar-user {
   padding: 12px 10px;
@@ -904,6 +917,108 @@ textarea.field-input-el { resize: vertical; line-height: 1.5; }
   gap: 8px;
   background: var(--bg-2);
 }
+
+/* Calendar page */
+.cal-toolbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.cal-nav { display: flex; align-items: center; gap: 6px; }
+.cal-title { font-family: 'Frank Ruhl Libre', serif; font-size: 18px; font-weight: 700; min-width: 160px; text-align: center; }
+.cal-view-toggle { display: flex; gap: 6px; margin-right: auto; }
+
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--line);
+  gap: 1px;
+}
+.cal-weekday {
+  background: var(--bg-2);
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cal-day-cell {
+  background: var(--surface);
+  min-height: 100px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.12s;
+}
+.cal-day-cell:hover { background: var(--bg-2); }
+.cal-day-cell.dim { opacity: 0.4; }
+.cal-day-cell.today .cal-day-num {
+  background: var(--brass);
+  color: var(--ink);
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-day-num { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.cal-day-items { display: flex; flex-direction: column; gap: 3px; }
+.cal-chip {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 3px solid var(--brass);
+}
+.cal-chip.event { border-right-color: var(--status-blocked); }
+.cal-chip:hover { background: var(--bg-3); }
+.cal-more { font-size: 10px; color: var(--text-dim); padding: 0 6px; }
+
+.cal-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+.cal-week-col {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+.cal-week-col.today { border-color: var(--brass); }
+.cal-week-head {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.cal-week-dayname { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.cal-week-daynum { font-size: 16px; font-weight: 700; color: var(--text); font-family: 'Frank Ruhl Libre', serif; }
+.cal-week-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.cal-card {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  border-right: 3px solid var(--brass);
+  cursor: pointer;
+  font-size: 12px;
+}
+.cal-card.event { border-right-color: var(--status-blocked); }
+.cal-card:hover { background: var(--bg-3); }
+.cal-card-time { font-size: 11px; color: var(--text-dim); }
+.cal-card-title { color: var(--text); font-weight: 600; }
+.cal-card-sub { color: var(--text-muted); font-size: 11px; }
+.cal-add-btn { margin-top: auto; width: 100%; justify-content: center; }
 
 /* Light mode paper texture */
 [data-theme="light"] .app::before {

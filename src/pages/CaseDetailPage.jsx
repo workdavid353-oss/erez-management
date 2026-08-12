@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../lib/categories'
 import { STATUS_CLASS, STATUS_ORDER, fmtDate, fmtDateTime, initials } from '../lib/helpers'
 import { createFinalCheckTasks } from '../lib/taskUtils'
 import { IcChevron, IcEdit, IcPlus, IcCheck, IcX, IcTrash } from '../components/Icons'
+import TimeSelect from '../components/TimeSelect'
 
-const CATEGORIES = ['אזרחי', 'פלילי', 'מסחרי', 'משפחה', 'נדל"ן', 'עבודה']
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'דחוף', 'ממתין', 'הושלם', 'סגור']
 const PRIORITY_OPTIONS = ['גבוהה', 'בינונית', 'נמוכה']
 
@@ -31,7 +32,7 @@ function ConfirmModal({ title, message, confirmLabel = 'אישור', danger = fa
   )
 }
 
-function EditCaseModal({ caseData, onSave, onClose }) {
+function EditCaseModal({ caseData, categoryNames, onSave, onClose }) {
   const [form, setForm] = useState({ ...caseData })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -40,6 +41,8 @@ function EditCaseModal({ caseData, onSave, onClose }) {
       name: form.name, court_case_number: form.court_case_number,
       category: form.category, status: form.status,
       subject: form.subject, additional_info: form.additional_info,
+      legal_case_number: form.legal_case_number || null,
+      server_location:   form.server_location   || null,
     }).eq('id', form.id)
     if (!error) onSave(form)
   }
@@ -62,10 +65,18 @@ function EditCaseModal({ caseData, onSave, onClose }) {
               <input className="field-input-el" value={form.court_case_number || ''} onChange={e => set('court_case_number', e.target.value)} />
             </div>
             <div className="field">
+              <span className="label">מספר תיק בליגל</span>
+              <input className="field-input-el" value={form.legal_case_number || ''} onChange={e => set('legal_case_number', e.target.value)} />
+            </div>
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <span className="label">מיקום בשרת</span>
+              <input className="field-input-el" placeholder="https://... או \\server\path" value={form.server_location || ''} onChange={e => set('server_location', e.target.value)} />
+            </div>
+            <div className="field">
               <span className="label">קטגוריה</span>
               <select className="field-input-el" value={form.category || ''} onChange={e => set('category', e.target.value)}>
                 <option value="">— בחר —</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categoryNames.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
@@ -324,9 +335,9 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
                   <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
                     value={form.work_start?.slice(0, 10) || ''}
                     onChange={e => set('work_start', e.target.value + 'T' + (form.work_start?.slice(11, 16) || '00:00'))} />
-                  <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                  <TimeSelect
                     value={form.work_start?.slice(11, 16) || ''}
-                    onChange={e => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                    onChange={v => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + v)} />
                 </div>
               </div>
               <div className="field">
@@ -335,9 +346,9 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
                   <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
                     value={form.work_end?.slice(0, 10) || ''}
                     onChange={e => set('work_end', e.target.value + 'T' + (form.work_end?.slice(11, 16) || '00:00'))} />
-                  <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                  <TimeSelect
                     value={form.work_end?.slice(11, 16) || ''}
-                    onChange={e => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                    onChange={v => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + v)} />
                 </div>
               </div>
               <div className="field">
@@ -437,6 +448,7 @@ function PhysicalLocationCard({ caseId, value }) {
 
 export default function CaseDetailPage({ caseId, onBack }) {
   const { isAdmin, user } = useAuth()
+  const { names: categoryNames } = useCategories()
   const [c,                 setC]              = useState(null)
   const [assignments,       setAssign]         = useState([])
   const [editOpen,          setEdit]           = useState(false)
@@ -485,7 +497,7 @@ export default function CaseDetailPage({ caseId, onBack }) {
 
   return (
     <div className="page">
-      {editOpen && <EditCaseModal caseData={c} onSave={updated => { setC(updated); setEdit(false) }} onClose={() => setEdit(false)} />}
+      {editOpen && <EditCaseModal caseData={c} categoryNames={categoryNames} onSave={updated => { setC(updated); setEdit(false) }} onClose={() => setEdit(false)} />}
       {addTaskOpen && (
         <AddTaskModal
           caseId={caseId}
@@ -548,9 +560,18 @@ export default function CaseDetailPage({ caseId, onBack }) {
               <div className="field-grid">
                 <div className="field"><span className="label">שם התיק</span><span className="value">{c.name}</span></div>
                 <div className="field"><span className="label">מספר בית משפט</span><span className="value mono">{c.court_case_number || '—'}</span></div>
+                <div className="field"><span className="label">מספר תיק בליגל</span><span className="value mono">{c.legal_case_number || '—'}</span></div>
                 <div className="field"><span className="label">קטגוריה</span><span className="value">{c.category || '—'}</span></div>
                 <div className="field"><span className="label">תאריך פתיחה</span><span className="value mono">{fmtDate(c.created_at)}</span></div>
                 <div className="field" style={{ gridColumn: '1/-1' }}><span className="label">נושא</span><span className="value">{c.subject || '—'}</span></div>
+                <div className="field" style={{ gridColumn: '1/-1' }}>
+                  <span className="label">מיקום בשרת</span>
+                  {c.server_location ? (
+                    <a className="value" href={c.server_location} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brass)', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                      {c.server_location}
+                    </a>
+                  ) : <span className="value">—</span>}
+                </div>
                 <div className="field" style={{ gridColumn: '1/-1' }}><span className="label">מידע נוסף</span><span className="value">{c.additional_info || '—'}</span></div>
               </div>
             </div>

@@ -41,3 +41,12 @@ export const fmtDateTime = (iso) => {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
+
+// time: 'HH:MM' or 'HH:MM:SS' (Postgres TIME) → 'HH:MM'
+export const fmtTime = (time) => time ? time.slice(0, 5) : ''
+
+// 'YYYY-MM-DD' in local time, avoids UTC-shift bugs from toISOString()
+export const dateKey = (d) => {
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}

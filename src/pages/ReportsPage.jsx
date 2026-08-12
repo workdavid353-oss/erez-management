@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useCategories } from '../lib/categories'
 import { initials } from '../lib/helpers'
 import { IcCalendar, IcDownload } from '../components/Icons'
 
-const CATEGORIES = ['אזרחי', 'פלילי', 'מסחרי', 'משפחה', 'נדל"ן', 'עבודה']
 const PERIOD_LABEL = { week: '7 ימים אחרונים', month: 'חודש אחרון', quarter: 'רבעון אחרון', year: 'שנה אחרונה' }
 
 function BarChart({ data, max }) {
@@ -75,6 +75,7 @@ function getPeriodFrom(period) {
 }
 
 export default function ReportsPage() {
+  const { names: categoryNames } = useCategories()
   const [cases,       setCases]       = useState([])
   const [employees,   setEmployees]   = useState([])
   const [assignments, setAssignments] = useState([])
@@ -131,7 +132,7 @@ export default function ReportsPage() {
 
   if (loading) return <div className="app-loading" style={{ minHeight: 'unset', padding: 60 }}>טוען דוחות...</div>
 
-  const catCounts = CATEGORIES.map(c => ({ name: c, count: cases.filter(x => x.category === c).length }))
+  const catCounts = categoryNames.map(c => ({ name: c, count: cases.filter(x => x.category === c).length }))
   const maxCat    = Math.max(...catCounts.map(c => c.count), 1)
 
   const statusGroups = [

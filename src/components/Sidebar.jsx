@@ -1,4 +1,4 @@
-import { IcDashboard, IcTasks, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback, IcHistory } from './Icons'
+import { IcDashboard, IcTasks, IcTable, IcCalendar, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback, IcHistory } from './Icons'
 import { roleLabel } from '../lib/helpers'
 
 export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose, onFeedback }) {
@@ -9,6 +9,8 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
   const items = [
     { id: 'dashboard',  label: 'מסך ראשי',      icon: IcDashboard },
     { id: 'tasks',      label: 'המשימות שלי',   icon: IcTasks     },
+    { id: 'all-tasks',  label: 'כל המשימות',    icon: IcTable     },
+    { id: 'calendar',   label: 'יומן',           icon: IcCalendar  },
     { id: 'cases-mgmt', label: 'ניהול תיקים',   icon: IcFolder,   show: canManageCases },
     { id: 'reports',    label: 'דוחות',         icon: IcReports,  show: canSeeReports  },
     { id: 'users',      label: 'ניהול משתמשים', icon: IcUsers,    show: user?.role === 'owner' },
@@ -46,16 +48,17 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
         <IcSettings size={16} />
         <span>הגדרות</span>
       </button>
-      <button className="nav-item" onClick={onFeedback}>
-        <IcFeedback size={16} />
-        <span>דווח / בקש פיצ'ר</span>
-      </button>
       <button className="nav-item" onClick={onLogout}>
         <IcLogout size={16} />
         <span>התנתקות</span>
       </button>
 
       <div className="sidebar-spacer" />
+
+      <button className="nav-item feedback-btn" onClick={onFeedback}>
+        <IcFeedback size={20} />
+        <span>דווח / בקש פיצ'ר</span>
+      </button>
 
       <div className="sidebar-user">
         <div className="avatar">{user?.initials || user?.full_name?.slice(0, 2) || '?'}</div>

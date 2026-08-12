@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { STATUS_CLASS, STATUS_ORDER, fmtDate } from '../lib/helpers'
 import { createFinalCheckTasks } from '../lib/taskUtils'
 import { IcTasks, IcAlert, IcClock, IcCheck, IcPlus, IcX, IcEdit, IcSearch } from '../components/Icons'
+import TimeSelect from '../components/TimeSelect'
 
 const STATUS_OPTIONS   = ['חדש', 'בטיפול', 'בוצע', 'ממתין']
 const PRIORITY_OPTIONS = ['גבוהה', 'בינונית', 'נמוכה']
@@ -348,9 +349,9 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
                     <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
                       value={form.work_start?.slice(0, 10) || ''}
                       onChange={e => set('work_start', e.target.value + 'T' + (form.work_start?.slice(11, 16) || '00:00'))} />
-                    <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                    <TimeSelect
                       value={form.work_start?.slice(11, 16) || ''}
-                      onChange={e => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                      onChange={v => set('work_start', (form.work_start?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + v)} />
                   </div>
                 </div>
                 <div className="field-input">
@@ -359,9 +360,9 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
                     <input className="field-input-el" type="date" style={{ flex: 1, colorScheme: 'var(--color-scheme, light)' }}
                       value={form.work_end?.slice(0, 10) || ''}
                       onChange={e => set('work_end', e.target.value + 'T' + (form.work_end?.slice(11, 16) || '00:00'))} />
-                    <input className="field-input-el" type="time" style={{ width: 90, colorScheme: 'var(--color-scheme, light)' }}
+                    <TimeSelect
                       value={form.work_end?.slice(11, 16) || ''}
-                      onChange={e => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + e.target.value)} />
+                      onChange={v => set('work_end', (form.work_end?.slice(0, 10) || new Date().toISOString().slice(0, 10)) + 'T' + v)} />
                   </div>
                 </div>
                 <div className="field-input">
