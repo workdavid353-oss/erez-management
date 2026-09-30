@@ -61,6 +61,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+html { --ui-zoom: 1; zoom: var(--ui-zoom); }
 body {
   font-family: 'Heebo', system-ui, -apple-system, sans-serif;
   background: var(--bg);
@@ -83,7 +84,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
 ::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
 /* App shell */
-.app { min-height: 100vh; }
+.app { min-height: calc(100vh / var(--ui-zoom)); }
 .main {
   min-width: 0;
   overflow: hidden;
@@ -97,7 +98,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: inher
   position: fixed;
   top: 0;
   right: 0;
-  height: 100vh;
+  height: calc(100vh / var(--ui-zoom));
   width: var(--sidebar-w);
   z-index: 100;
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
@@ -634,7 +635,7 @@ table.cases tbody tr.urgent-row td:first-child {
 
 /* Login */
 .login {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-zoom));
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: var(--bg);
@@ -800,6 +801,28 @@ table.cases tbody tr.urgent-row td:first-child {
 }
 .settings-nav button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); }
 .settings-nav button:hover:not(.active) { background: var(--bg-2); color: var(--text); }
+/* Font size slider (Settings) */
+.font-size-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.font-size-a { color: var(--text-muted); font-weight: 700; line-height: 1; }
+.font-size-a.small { font-size: 13px; }
+.font-size-a.large { font-size: 22px; }
+.font-size-value { min-width: 52px; text-align: center; font-weight: 700; font-size: 15px; color: var(--text); }
+.font-size-range {
+  flex: 1; min-width: 180px; height: 6px; margin: 0;
+  -webkit-appearance: none; appearance: none; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(to left, var(--brass) var(--pct), var(--bg-3) var(--pct));
+}
+.font-size-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--brass); box-shadow: var(--shadow-1);
+}
+.font-size-range::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--brass); box-shadow: var(--shadow-1);
+}
+.font-size-range:focus-visible { outline: 2px solid var(--brass); outline-offset: 4px; }
+
 .theme-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
 .theme-card {
   border: 2px solid var(--line);
@@ -872,7 +895,7 @@ table.cases tbody tr.urgent-row td:first-child {
 
 /* Loading */
 .app-loading {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-zoom));
   display: grid;
   place-items: center;
   background: var(--bg);

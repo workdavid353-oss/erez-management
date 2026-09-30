@@ -11,6 +11,18 @@ export const STATUS_LABEL = {
 
 export const PRIORITY_LABEL = { high: 'גבוהה', med: 'בינונית', low: 'נמוכה' }
 
+// גודל טקסט באחוזים — נשמר ב-profiles.preferences.fontSize, מוחל כ-zoom על הממשק
+export const FONT_SIZE_MIN = 80
+export const FONT_SIZE_MAX = 150
+export const FONT_SIZE_STEP = 5
+export const FONT_SIZE_DEFAULT = 100
+
+export function normalizeFontSize(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return FONT_SIZE_DEFAULT
+  return Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(n)))
+}
+
 // מיפוי סטטוס עברי → מפתח CSS
 export const STATUS_ORDER = {
   'דחוף':   0,

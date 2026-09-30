@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import { roleLabel } from '../lib/helpers'
+import { roleLabel, FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP, FONT_SIZE_DEFAULT } from '../lib/helpers'
 
 function Toggle({ on: initial }) {
   const [on, setOn] = useState(initial)
@@ -21,7 +21,7 @@ function Toggle({ on: initial }) {
   )
 }
 
-export default function SettingsPage({ theme, onTheme }) {
+export default function SettingsPage({ theme, onTheme, fontSize, onFontSize }) {
   const { profile, updateProfile } = useAuth()
   const [section,     setSection]     = useState('profile')
   const [displayName, setDisplayName] = useState(profile?.full_name || '')
@@ -34,6 +34,11 @@ export default function SettingsPage({ theme, onTheme }) {
   const [pwSaving,   setPwSaving]   = useState(false)
   const [pwError,    setPwError]    = useState('')
   const [pwSaved,    setPwSaved]    = useState(false)
+
+  // ערך מקומי בזמן גרירה — מוחל ונשמר רק בשחרור, כדי שהממשק לא יזוז מתחת לעכבר
+  const [fontDraft,  setFontDraft]  = useState(fontSize)
+  useEffect(() => { setFontDraft(fontSize) }, [fontSize])
+  const commitFont = () => onFontSize(fontDraft)
 
   async function handleChangePassword() {
     setPwError('')
@@ -78,7 +83,7 @@ export default function SettingsPage({ theme, onTheme }) {
           {[
             ['profile',       'פרופיל'],
             ['security',      'אבטחה וסיסמה'],
-            ['appearance',    'תצוגה — יום/לילה'],
+            ['appearance',    'תצוגה וגודל טקסט'],
           ].map(([k, l]) => (
             <button key={k} className={section === k ? 'active' : ''} onClick={() => setSection(k)}>{l}</button>
           ))}
@@ -163,6 +168,45 @@ export default function SettingsPage({ theme, onTheme }) {
                     <div className="title">לילה</div>
                     <div className="desc">דיו עמוק — לעבודה בערב ובשעות מאוחרות</div>
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {section === 'appearance' && (
+            <div className="card">
+              <div className="card-head"><h3>גודל טקסט</h3></div>
+              <div className="card-body">
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  הגדל או הקטן את הטקסט בכל המערכת. הבחירה נשמרת לפי משתמש ותחול בכל מכשיר.
+                </div>
+                <div className="font-size-row">
+                  <span className="font-size-a small">א</span>
+                  <input
+                    type="range"
+                    className="font-size-range"
+                    min={FONT_SIZE_MIN}
+                    max={FONT_SIZE_MAX}
+                    step={FONT_SIZE_STEP}
+                    value={fontDraft}
+                    onChange={e => setFontDraft(Number(e.target.value))}
+                    onPointerUp={commitFont}
+                    onKeyUp={commitFont}
+                    onBlur={commitFont}
+                    style={{ '--pct': `${((fontDraft - FONT_SIZE_MIN) / (FONT_SIZE_MAX - FONT_SIZE_MIN)) * 100}%` }}
+                  />
+                  <span className="font-size-a large">א</span>
+                  <span className="font-size-value mono">{fontDraft}%</span>
+                  <button
+                    className="btn"
+                    onClick={() => onFontSize(FONT_SIZE_DEFAULT)}
+                    disabled={fontSize === FONT_SIZE_DEFAULT && fontDraft === FONT_SIZE_DEFAULT}
+                  >
+                    איפוס
+                  </button>
+                </div>
+                <div style={{ fontSize: 14 * fontDraft / 100 / (fontSize / 100), color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.5 }}>
+                  תצוגה מקדימה: כך ייראה הטקסט במערכת.
                 </div>
               </div>
             </div>

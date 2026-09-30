@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { supabase } from './lib/supabase'
+import { normalizeFontSize, FONT_SIZE_DEFAULT } from './lib/helpers'
 import Sidebar from './components/Sidebar'
 import FeedbackModal from './components/FeedbackModal'
 import { IcMenu } from './components/Icons'
@@ -23,6 +24,7 @@ function AppShell() {
   const [screen,       setScreen]      = useState('dashboard')
   const [openCaseId,   setCaseId]      = useState(null)
   const [theme,        setTheme]       = useState(() => localStorage.getItem('el-theme') || 'light')
+  const [fontSize,     setFontSize]    = useState(() => normalizeFontSize(localStorage.getItem('el-font-size') ?? FONT_SIZE_DEFAULT))
   const [sidebarOpen,  setSidebar]     = useState(true)
   const [feedbackOpen, setFeedback]    = useState(false)
 
@@ -41,6 +43,25 @@ function AppShell() {
   function handleThemeChange(newTheme) {
     setTheme(newTheme)
     updatePreference('theme', newTheme)
+  }
+
+  // גודל טקסט — מוחל כ-zoom על כל הממשק (כל הגדלים ב-CSS הם px)
+  useEffect(() => {
+    if (profile?.preferences?.fontSize != null) {
+      setFontSize(normalizeFontSize(profile.preferences.fontSize))
+    }
+  }, [profile?.id])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ui-zoom', fontSize / 100)
+    localStorage.setItem('el-font-size', fontSize)
+  }, [fontSize])
+
+  function handleFontSizeChange(newSize) {
+    const size = normalizeFontSize(newSize)
+    if (size === fontSize) return
+    setFontSize(size)
+    updatePreference('fontSize', size)
   }
 
   if (loading) {
@@ -79,7 +100,7 @@ function AppShell() {
         {screen === 'cases-mgmt' && <CasesManagementPage onOpenCase={openCase} />}
         {screen === 'reports'   && <ReportsPage />}
         {screen === 'users'     && <UsersPage />}
-        {screen === 'settings'  && <SettingsPage theme={theme} onTheme={handleThemeChange} />}
+        {screen === 'settings'  && <SettingsPage theme={theme} onTheme={handleThemeChange} fontSize={fontSize} onFontSize={handleFontSizeChange} />}
         {screen === 'feedback'  && <FeedbackAdminPage />}
         {screen === 'audit'     && <AuditLogPage />}
       </main>
