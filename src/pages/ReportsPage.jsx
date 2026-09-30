@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useCategories } from '../lib/categories'
-import { initials } from '../lib/helpers'
 import { IcCalendar, IcDownload } from '../components/Icons'
+import Avatar from '../components/Avatar'
 
 const PERIOD_LABEL = { week: '7 ימים אחרונים', month: 'חודש אחרון', quarter: 'רבעון אחרון', year: 'שנה אחרונה' }
 
@@ -251,7 +251,7 @@ export default function ReportsPage() {
                   <tr key={r.emp.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span className="avatar">{initials(r.emp.full_name)}</span>
+                        <Avatar id={r.emp.id} name={r.emp.full_name} />
                         <span style={{ fontWeight: 600, fontSize: 13 }}>{r.emp.full_name}</span>
                       </div>
                     </td>
@@ -284,7 +284,7 @@ export default function ReportsPage() {
           ) : workload.map(w => (
             <div className="workload-row" key={w.emp.id}>
               <div className="who">
-                <span className="avatar">{initials(w.emp.full_name)}</span>
+                <Avatar id={w.emp.id} name={w.emp.full_name} />
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{w.emp.full_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>סה"כ {w.total} משימות</div>

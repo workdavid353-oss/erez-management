@@ -530,6 +530,16 @@ table.cases tbody tr.urgent-row td:first-child {
 [data-theme="dark"] .status-cell.blocked { color: oklch(0.85 0.10 305); }
 .empty-cell { color: var(--text-dim); font-size: 12px; font-style: italic; }
 .user-cell { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; }
+/* Avatar color picker (Settings) */
+.avatar-colors { display: flex; gap: 10px; flex-wrap: wrap; }
+.avatar-color {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid transparent; box-shadow: 0 0 0 1px var(--line);
+  transition: transform 0.12s;
+}
+.avatar-color:hover:not(:disabled) { transform: scale(1.1); }
+.avatar-color.selected { border-color: var(--surface); box-shadow: 0 0 0 2px var(--brass); }
+
 .user-cell .avatar { width: 22px; height: 22px; font-size: 11px; }
 
 /* Case detail */

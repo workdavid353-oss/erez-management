@@ -1,5 +1,6 @@
 import { IcDashboard, IcTasks, IcTable, IcCalendar, IcReports, IcUsers, IcSettings, IcLogout, IcSun, IcMoon, IcX, IcFolder, IcFeedback, IcHistory } from './Icons'
 import { roleLabel } from '../lib/helpers'
+import Avatar from './Avatar'
 
 export default function Sidebar({ current, onNav, user, theme, onToggleTheme, onLogout, onClose, onFeedback }) {
   const canSeeReports  = user?.role === 'owner' || user?.role === 'sysadmin' || user?.role === 'secretary' || user?.role === 'admin'
@@ -61,7 +62,7 @@ export default function Sidebar({ current, onNav, user, theme, onToggleTheme, on
       </button>
 
       <div className="sidebar-user">
-        <div className="avatar">{user?.initials || user?.full_name?.slice(0, 2) || '?'}</div>
+        <Avatar id={user?.id} name={user?.full_name} />
         <div className="who">
           <div className="name">{user?.name || user?.full_name || '—'}</div>
           <div className="role">{roleLabel(user?.role)}</div>

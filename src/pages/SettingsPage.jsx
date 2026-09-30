@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
+import Avatar, { AVATAR_COLORS, AVATAR_ACCEPT, defaultAvatarColor, resizeImageToDataUrl, validateAvatarFile, isValidAvatarPhoto } from '../components/Avatar'
 import { roleLabel, FONT_SIZE_MIN, FONT_SIZE_MAX, FONT_SIZE_STEP, FONT_SIZE_DEFAULT } from '../lib/helpers'
 
 function Toggle({ on: initial }) {
@@ -22,7 +23,7 @@ function Toggle({ on: initial }) {
 }
 
 export default function SettingsPage({ theme, onTheme, fontSize, onFontSize }) {
-  const { profile, updateProfile } = useAuth()
+  const { profile, updateProfile, updatePreference } = useAuth()
   const [section,     setSection]     = useState('profile')
   const [displayName, setDisplayName] = useState(profile?.full_name || '')
   const [saving,      setSaving]      = useState(false)
@@ -66,7 +67,31 @@ export default function SettingsPage({ theme, onTheme, fontSize, onFontSize }) {
     if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500) }
   }
 
-  const initials = profile?.full_name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?'
+  const [avatarBusy,  setAvatarBusy]  = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const currentColor = profile?.preferences?.avatarColor || defaultAvatarColor(profile?.id || '')
+  const hasPhoto     = isValidAvatarPhoto(profile?.preferences?.avatarPhoto)
+
+  async function saveAvatarPref(key, value) {
+    setAvatarBusy(true); setAvatarError('')
+    const { error } = await updatePreference(key, value)
+    setAvatarBusy(false)
+    if (error) setAvatarError('שגיאה בשמירה: ' + error.message)
+  }
+
+  async function handlePhoto(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const invalid = validateAvatarFile(file)
+    if (invalid) { setAvatarError(invalid); return }
+    try {
+      const dataUrl = await resizeImageToDataUrl(file)
+      await saveAvatarPref('avatarPhoto', dataUrl)
+    } catch (err) {
+      setAvatarError(err.message)
+    }
+  }
 
   return (
     <div className="page">
@@ -95,7 +120,7 @@ export default function SettingsPage({ theme, onTheme, fontSize, onFontSize }) {
               <div className="card-head"><h3>פרופיל</h3></div>
               <div className="card-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
-                  <div className="avatar" style={{ width: 64, height: 64, fontSize: 22, borderRadius: 8 }}>{initials}</div>
+                  <Avatar id={profile?.id} name={profile?.full_name} size={64} style={{ borderRadius: 8 }} />
                   <div>
                     <div style={{ fontFamily: 'Frank Ruhl Libre, serif', fontWeight: 700, fontSize: 20 }}>{profile?.full_name}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{roleLabel(profile?.role)} · {profile?.email || ''}</div>
@@ -115,6 +140,47 @@ export default function SettingsPage({ theme, onTheme, fontSize, onFontSize }) {
                   </button>
                   {saved && <span style={{ fontSize: 13, color: 'var(--status-progress)' }}>✓ נשמר בהצלחה</span>}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {section === 'profile' && (
+            <div className="card">
+              <div className="card-head"><h3>תמונת פרופיל וצבע</h3></div>
+              <div className="card-body">
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+                  העלה תמונה או בחר צבע לעיגול שלך. כך תופיע לכל המשתמשים במערכת.
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+                  <label className={'btn primary' + (avatarBusy ? ' disabled' : '')} style={{ cursor: avatarBusy ? 'default' : 'pointer' }}>
+                    {avatarBusy ? 'שומר...' : hasPhoto ? 'החלף תמונה' : 'העלה תמונה'}
+                    <input type="file" accept={AVATAR_ACCEPT} onChange={handlePhoto} disabled={avatarBusy} hidden />
+                  </label>
+                  {hasPhoto && (
+                    <button className="btn" onClick={() => saveAvatarPref('avatarPhoto', null)} disabled={avatarBusy}>
+                      הסר תמונה
+                    </button>
+                  )}
+                </div>
+
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+                  צבע {hasPhoto && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(מוצג כשאין תמונה)</span>}
+                </label>
+                <div className="avatar-colors">
+                  {AVATAR_COLORS.map(c => (
+                    <button
+                      key={c}
+                      className={'avatar-color' + (currentColor === c ? ' selected' : '')}
+                      style={{ background: c }}
+                      onClick={() => saveAvatarPref('avatarColor', c)}
+                      disabled={avatarBusy}
+                      title={c}
+                    />
+                  ))}
+                </div>
+
+                {avatarError && <div style={{ fontSize: 13, color: 'var(--status-urgent)', marginTop: 10 }}>{avatarError}</div>}
               </div>
             </div>
           )}

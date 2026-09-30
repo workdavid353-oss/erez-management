@@ -4,6 +4,7 @@ import { supabase } from './lib/supabase'
 import { normalizeFontSize, FONT_SIZE_DEFAULT } from './lib/helpers'
 import Sidebar from './components/Sidebar'
 import FeedbackModal from './components/FeedbackModal'
+import { AvatarProvider } from './components/Avatar'
 import { IcMenu } from './components/Icons'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -84,6 +85,7 @@ function AppShell() {
   }
 
   return (
+    <AvatarProvider>
     <div className="app">
       <main className={'main' + (sidebarOpen ? '' : ' sidebar-closed')}>
       {feedbackOpen && <FeedbackModal user={profile} onClose={() => setFeedback(false)} />}
@@ -118,6 +120,7 @@ function AppShell() {
         />
       </div>
     </div>
+    </AvatarProvider>
   )
 }
 

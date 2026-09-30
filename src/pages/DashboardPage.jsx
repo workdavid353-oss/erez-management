@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../lib/categories'
 import { STATUS_CLASS, fmtDateTime, fmtDate, initials } from '../lib/helpers'
 import { IcBriefcase, IcClock, IcAlert, IcAward, IcSearch, IcPlus, IcFilter, IcDownload, IcX, IcTrash } from '../components/Icons'
+import Avatar from '../components/Avatar'
 
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'דחוף', 'ממתין', 'הושלם', 'סגור']
 
@@ -333,7 +334,7 @@ export default function DashboardPage({ onOpenCase }) {
                 {employees.map(e => (
                   <th key={e.id}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="avatar" style={{ width: 20, height: 20, fontSize: 10 }}>{e.initials}</span>
+                      <Avatar id={e.id} name={e.full_name} size={20} />
                       <span style={{ textTransform: 'none', letterSpacing: 0, fontSize: 11 }}>
                         {e.full_name.split(' ')[0]}
                       </span>
@@ -388,7 +389,7 @@ export default function DashboardPage({ onOpenCase }) {
                     <td>
                       {c.updater && (
                         <span className="user-cell">
-                          <span className="avatar">{initials(c.updater.full_name)}</span>
+                          <Avatar id={c.updater.id} name={c.updater.full_name} />
                           {c.updater.full_name.split(' ')[0]}
                         </span>
                       )}

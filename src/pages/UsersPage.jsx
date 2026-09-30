@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { roleLabel, initials } from '../lib/helpers'
+import { roleLabel } from '../lib/helpers'
 import { IcPlus, IcEdit, IcX, IcTrash } from '../components/Icons'
+import Avatar from '../components/Avatar'
 
 function Modal({ title, onClose, children, footer }) {
   return (
@@ -277,7 +278,7 @@ export default function UsersPage() {
               <tr key={u.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="avatar">{initials(u.full_name)}</span>
+                    <Avatar id={u.id} name={u.full_name} />
                     <div>
                       <div className="case-name">{u.full_name}</div>
                       <div className="case-meta mono">{emails[u.id] || '—'}</div>

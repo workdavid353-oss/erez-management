@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { STATUS_CLASS, STATUS_ORDER, fmtDate, initials } from '../lib/helpers'
+import { STATUS_CLASS, STATUS_ORDER, fmtDate } from '../lib/helpers'
 import { IcTable, IcAlert, IcClock, IcTasks, IcSearch } from '../components/Icons'
+import Avatar from '../components/Avatar'
 
 const PRIORITY_ORDER = { 'גבוהה': 0, 'בינונית': 1, 'נמוכה': 2 }
 
@@ -190,7 +191,7 @@ export default function AllTasksPage({ onOpenCase }) {
                       <td>
                         {t.employee ? (
                           <span className="user-cell">
-                            <span className="avatar">{initials(t.employee.full_name)}</span>
+                            <Avatar id={t.employee.id} name={t.employee.full_name} />
                             {t.employee.full_name.split(' ')[0]}
                           </span>
                         ) : <span className="empty-cell">— לא מוקצה</span>}

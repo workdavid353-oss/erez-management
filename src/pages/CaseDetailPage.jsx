@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../lib/categories'
-import { STATUS_CLASS, STATUS_ORDER, fmtDate, fmtDateTime, initials } from '../lib/helpers'
+import { STATUS_CLASS, STATUS_ORDER, fmtDate, fmtDateTime } from '../lib/helpers'
 import { createFinalCheckTasks } from '../lib/taskUtils'
 import { IcChevron, IcEdit, IcPlus, IcCheck, IcX, IcTrash } from '../components/Icons'
 import TimeSelect from '../components/TimeSelect'
+import Avatar from '../components/Avatar'
 
 const STATUS_OPTIONS = ['חדש', 'בטיפול', 'דחוף', 'ממתין', 'הושלם', 'סגור']
 const PRIORITY_OPTIONS = ['גבוהה', 'בינונית', 'נמוכה']
@@ -257,7 +258,7 @@ function TaskRow({ assignment, canEdit, onUpdate, onDelete, onNewTasks }) {
       <tr className={isOverdue ? 'urgent-row' : ''}>
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="avatar">{initials(assignment.employee?.full_name || '?')}</span>
+            <Avatar id={assignment.employee?.id} name={assignment.employee?.full_name} />
             <span style={{ fontWeight: 600, fontSize: 13 }}>{assignment.employee?.full_name || '—'}</span>
           </div>
         </td>
