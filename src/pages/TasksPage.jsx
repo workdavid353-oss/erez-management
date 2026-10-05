@@ -116,7 +116,7 @@ function AddTaskModal({ onClose, onSaved, currentUser, isAdmin }) {
           </div>
 
           {/* סטטוס + עדיפות */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-grid-2">
             <div className="field-input">
               <label>סטטוס</label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
@@ -338,7 +338,7 @@ function TaskRow({ t, isOverdue, onMarkDone, onUpdate, onOpenCase }) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div className="form-grid-4">
                 <div className="field-input">
                   <label>תאריך יעד</label>
                   <input className="field-input-el" type="date" value={form.target_date} onChange={e => set('target_date', e.target.value)} style={{ colorScheme: 'var(--color-scheme, light)' }} />

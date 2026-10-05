@@ -71,7 +71,7 @@ export default function TaskModal({ caseItem, employees, onClose, onSaved }) {
           </div>
 
           {/* שורה: סוג משימה + חיובים */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-grid-2">
             <div className="field-input">
               <label>סוג משימה</label>
               <input className="field-input-el" placeholder='נדל"ן, חוזים...' value={form.task_type} onChange={e => set('task_type', e.target.value)} />
@@ -83,7 +83,7 @@ export default function TaskModal({ caseItem, employees, onClose, onSaved }) {
           </div>
 
           {/* שורה: סטטוס + עדיפות */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-grid-2">
             <div className="field-input">
               <label>סטטוס</label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>

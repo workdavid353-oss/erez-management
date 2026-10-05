@@ -211,7 +211,7 @@ export default function ReportsPage() {
             <h3>התפלגות סטטוסים</h3>
             <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{totalStatus} תיקים</span>
           </div>
-          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div className="card-body pie-wrap">
             <PieChart data={statusGroups} total={totalStatus} />
             <div className="legend" style={{ flexDirection: 'column', flex: 1 }}>
               {statusGroups.map(g => (

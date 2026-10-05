@@ -19,6 +19,9 @@ import SettingsPage from './pages/SettingsPage'
 import FeedbackAdminPage from './pages/FeedbackAdminPage'
 import AuditLogPage from './pages/AuditLogPage'
 
+// מתחת לרוחב הזה (טאבלט/טלפון) התפריט הוא מגירה צפה מעל התוכן
+const MOBILE_QUERY = '(max-width: 1024px)'
+
 function AppShell() {
   const { user, profile, loading, updatePreference } = useAuth()
 
@@ -26,8 +29,16 @@ function AppShell() {
   const [openCaseId,   setCaseId]      = useState(null)
   const [theme,        setTheme]       = useState(() => localStorage.getItem('el-theme') || 'light')
   const [fontSize,     setFontSize]    = useState(() => normalizeFontSize(localStorage.getItem('el-font-size') ?? FONT_SIZE_DEFAULT))
-  const [sidebarOpen,  setSidebar]     = useState(true)
+  const [isMobile,     setIsMobile]    = useState(() => window.matchMedia(MOBILE_QUERY).matches)
+  const [sidebarOpen,  setSidebar]     = useState(() => !window.matchMedia(MOBILE_QUERY).matches)
   const [feedbackOpen, setFeedback]    = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY)
+    const onChange = (e) => { setIsMobile(e.matches); setSidebar(!e.matches) }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   // סנכרון תמה מה-DB כשהפרופיל נטען
   useEffect(() => {
@@ -73,8 +84,9 @@ function AppShell() {
     return <LoginPage />
   }
 
-  const goto = (id) => { setScreen(id); setCaseId(null) }
-  const openCase = (id) => { setCaseId(id); setScreen('case') }
+  const closeOnMobile = () => { if (isMobile) setSidebar(false) }
+  const goto = (id) => { setScreen(id); setCaseId(null); closeOnMobile(); window.scrollTo(0, 0) }
+  const openCase = (id) => { setCaseId(id); setScreen('case'); window.scrollTo(0, 0) }
 
   const sidebarUser = profile
     ? { ...profile, name: profile.full_name, initials: profile.full_name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?' }
@@ -89,7 +101,16 @@ function AppShell() {
     <div className="app">
       <main className={'main' + (sidebarOpen ? '' : ' sidebar-closed')}>
       {feedbackOpen && <FeedbackModal user={profile} onClose={() => setFeedback(false)} />}
-        {!sidebarOpen && (
+        {isMobile && (
+          <div className="mobile-topbar">
+            <button className="icon-btn" onClick={() => setSidebar(true)} title="פתח תפריט">
+              <IcMenu size={18} />
+            </button>
+            <div className="crest">א</div>
+            <div className="name">Erez Legal</div>
+          </div>
+        )}
+        {!isMobile && !sidebarOpen && (
           <button className="sidebar-open-btn" onClick={() => setSidebar(true)} title="פתח תפריט">
             <IcMenu size={16} />
           </button>
@@ -107,6 +128,8 @@ function AppShell() {
         {screen === 'audit'     && <AuditLogPage />}
       </main>
 
+      {isMobile && sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebar(false)} />}
+
       <div className={'sidebar-wrap' + (sidebarOpen ? '' : ' collapsed')}>
         <Sidebar
           current={screen}
@@ -116,7 +139,7 @@ function AppShell() {
           onToggleTheme={() => handleThemeChange(theme === 'dark' ? 'light' : 'dark')}
           onLogout={handleLogout}
           onClose={() => setSidebar(false)}
-          onFeedback={() => setFeedback(true)}
+          onFeedback={() => { setFeedback(true); closeOnMobile() }}
         />
       </div>
     </div>

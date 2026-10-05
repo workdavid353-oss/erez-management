@@ -1064,4 +1064,115 @@ textarea.field-input-el { resize: vertical; line-height: 1.5; }
     radial-gradient(circle at 20% 30%, oklch(0.94 0.014 75 / 0.4) 0, transparent 40%),
     radial-gradient(circle at 80% 70%, oklch(0.94 0.014 85 / 0.3) 0, transparent 40%);
 }
-.app > *:not(.sidebar-wrap) { position: relative; z-index: 1; }
+.app > *:not(.sidebar-wrap):not(.sidebar-backdrop) { position: relative; z-index: 1; }
+
+/* Form grids (modals / inline edit forms) */
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.pie-wrap { display: flex; align-items: center; gap: 18px; }
+
+/* Mobile top bar + sidebar drawer (tablet/phone only — see MOBILE_QUERY in App.jsx) */
+.mobile-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.mobile-topbar .icon-btn { width: 38px; height: 38px; }
+.mobile-topbar .crest {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--brass-soft);
+  display: grid; place-items: center;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-weight: 700;
+  font-size: 17px;
+}
+.mobile-topbar .name { font-family: 'Frank Ruhl Libre', serif; font-weight: 700; font-size: 17px; }
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  z-index: 90;
+  background: oklch(0.20 0.02 255 / 0.45);
+  animation: fadeIn 0.2s ease both;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Tablet ── */
+@media (max-width: 1024px) {
+  .main, .main.sidebar-closed { margin-right: 0; overflow: clip; }
+  .sidebar-wrap { width: min(var(--sidebar-w), 85vw); }
+  .sidebar { overflow-y: auto; }
+  .page { padding: 22px 20px 48px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .detail-grid { grid-template-columns: 1fr; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .form-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .settings-grid { grid-template-columns: 1fr; gap: 16px; }
+  .settings-nav { position: static; flex-direction: row; overflow-x: auto; }
+  .settings-nav button { white-space: nowrap; }
+  .cal-week-grid { grid-template-columns: repeat(4, 1fr); }
+  .login { grid-template-columns: 1fr; }
+  .login-art { display: none; }
+  .modal-overlay { overflow-y: auto; padding: 16px 0; }
+  .modal-box .card-body { max-height: calc(100vh / var(--ui-zoom) - 160px); overflow-y: auto; }
+}
+
+/* ── Phone ── */
+@media (max-width: 640px) {
+  .page { padding: 16px 14px 40px; }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+  .page-header > :last-child:not(:first-child) { flex-wrap: wrap; }
+  .page-header h1 { font-size: 24px; }
+  .page-header .sub { font-size: 13px; }
+
+  .stats { gap: 10px; margin-bottom: 16px; }
+  .stat-card { padding: 12px; }
+  .stat-card .value { font-size: 26px; margin-top: 6px; }
+  .stat-card .delta { font-size: 11px; }
+
+  .toolbar { gap: 8px; }
+  .search { min-width: 0 !important; max-width: none; flex-basis: 100%; }
+  .toolbar > div[style*="margin-right: auto"] { margin-right: 0 !important; flex-wrap: wrap; }
+
+  .field-grid, .form-grid-2, .form-grid-4 { grid-template-columns: 1fr; }
+  .card-head { flex-wrap: wrap; padding: 12px 14px; }
+  .card-body { padding: 14px; }
+  .pie-wrap { flex-direction: column; }
+  .workload-row { grid-template-columns: 100px 1fr 50px; gap: 10px; }
+
+  .tabs { padding: 0 8px; }
+  .timeline { padding: 8px 12px 14px; }
+
+  .modal-box { width: 100%; max-width: calc(100vw - 20px) !important; }
+  .modal-footer { flex-wrap: wrap; }
+
+  /* iOS zooms into inputs smaller than 16px */
+  input, select, textarea, .field-input-el, .search input { font-size: 16px; }
+
+  .cal-toolbar { gap: 8px; }
+  .cal-title { min-width: 0; flex: 1; font-size: 16px; }
+  .cal-view-toggle { margin-right: 0; }
+  .cal-weekday { padding: 6px 2px; font-size: 10px; letter-spacing: 0; }
+  .cal-day-cell { min-height: 64px; padding: 3px; gap: 2px; }
+  .cal-chip { font-size: 9px; padding: 1px 3px; border-right-width: 2px; }
+  .cal-chip .mono { display: none; }
+  .cal-more { font-size: 9px; padding: 0 2px; }
+  .cal-week-grid { grid-template-columns: 1fr; gap: 8px; }
+  .cal-week-col { min-height: 0; }
+  .cal-week-head { display: flex; align-items: baseline; gap: 8px; text-align: right; padding: 8px 12px; }
+
+  .theme-picker { grid-template-columns: 1fr; }
+  .login-pane { padding: 24px 18px; }
+}

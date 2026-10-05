@@ -124,7 +124,7 @@ function AddItemModal({ date, employees, cases, currentUser, isAdmin, onClose, o
                 <label>תאריך <span style={{ color: 'var(--status-urgent)' }}>*</span></label>
                 <input type="date" className="field-input-el" value={taskForm.target_date} onChange={e => setTaskForm(f => ({ ...f, target_date: e.target.value }))} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid-2">
                 <div className="field-input">
                   <label>משעה</label>
                   <TimeSelect value={taskForm.target_time} onChange={v => setTaskForm(f => ({ ...f, target_time: v }))} />
@@ -134,7 +134,7 @@ function AddItemModal({ date, employees, cases, currentUser, isAdmin, onClose, o
                   <TimeSelect value={taskForm.target_end_time} onChange={v => setTaskForm(f => ({ ...f, target_end_time: v }))} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid-2">
                 <div className="field-input">
                   <label>סטטוס</label>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
@@ -167,7 +167,7 @@ function AddItemModal({ date, employees, cases, currentUser, isAdmin, onClose, o
                 <label>תאריך <span style={{ color: 'var(--status-urgent)' }}>*</span></label>
                 <input type="date" className="field-input-el" value={eventForm.event_date} onChange={e => setEventForm(f => ({ ...f, event_date: e.target.value }))} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-grid-2">
                 <div className="field-input">
                   <label>משעה</label>
                   <TimeSelect value={eventForm.event_time} onChange={v => setEventForm(f => ({ ...f, event_time: v }))} />
